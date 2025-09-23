@@ -10,10 +10,10 @@
 
 Transform your Linux terminal into an **Imperial Command Terminal**.
 
-
 ## Compatibility
 
 This configuration supports:
+
 - **Zsh** (`.zshrc`) - Recommended for Space Marine Lieutenants
 - **Bash** (`.bashrc`) - Suitable for Imperial Guard officers
 - **Other POSIX shells** - With minor modifications
@@ -21,6 +21,7 @@ This configuration supports:
 ## Features
 
 ### Sacred Terminal Interface
+
 - **Dynamic Chapter system** - Choose your Space Marine Chapter with authentic colors
 - **Imperial dating system** - M41/M42 timeline with proper Imperial format
 - **Rank progression** - Advance from Battle-Brother to Chapter Master based on system usage
@@ -31,6 +32,7 @@ This configuration supports:
 ### Combat-Ready Aliases
 
 #### System Purification Commands
+
 ```bash
 purify-system        # System updates with Imperial ceremony
 cleanse-heresy       # Remove heretical packages with blessing
@@ -41,6 +43,7 @@ monitor-machine      # System resource monitoring with machine spirit
 ```
 
 #### Reconnaissance Operations
+
 ```bash
 recon-scan           # Network discovery with warp storm checks
 full-augury          # Complete network analysis
@@ -51,6 +54,7 @@ external-position    # Check external IP coordinates
 ```
 
 #### Data Management Protocols
+
 ```bash
 list-data            # Enhanced directory listing with Imperial formatting
 inscribe             # Sacred text editor (nano)
@@ -63,6 +67,7 @@ compress/extract     # Archive operations with ritual
 ### Imperial Functions & Rituals
 
 Execute these sacred rituals:
+
 ```bash
 praise-omnissiah     # Mechanicus blessing with system uptime
 binary-prayer        # Emperor's protection in sacred binary
@@ -86,6 +91,7 @@ Choose from authentic Space Marine Chapters:
 | **Imperial Fists** | Yellow/Black | ✊ | "Primarch-Progenitor, to your glory!" |
 
 Each Chapter includes:
+
 - Authentic color schemes
 - Chapter-specific mottos and battle cries
 - Unique terminal aesthetics
@@ -94,6 +100,7 @@ Each Chapter includes:
 ## Installation
 
 ### For Zsh Users (Recommended)
+
 ```bash
 # Backup your current configuration
 cp ~/.zshrc ~/.zshrc.backup
@@ -106,6 +113,7 @@ source ~/.zshrc
 ```
 
 ### For Bash Users
+
 ```bash
 # Backup your current configuration
 cp ~/.bashrc ~/.bashrc.backup
@@ -120,6 +128,7 @@ source ~/.bashrc
 ### Dependencies
 
 Install these sacred components:
+
 ```bash
 # Ubuntu/Debian systems
 sudo apt install curl htop nmap bc
@@ -134,6 +143,7 @@ sudo apt install hollywood
 ## Chapter Configuration
 
 ### Personal Chapter Setup
+
 ```bash
 # Edit your Chapter configuration
 chapter-config
@@ -146,7 +156,9 @@ BATTLE_HONORS=("Armageddon" "Baal") # Your battle honors
 ```
 
 ### Custom Chapter Creation
+
 Add your own Chapter by modifying the case statement in the configuration:
+
 ```bash
 "YOUR_CHAPTER")
     PRIMARY_COLOR="\033[38;2;R;G;Bm"     # Your colors
@@ -159,11 +171,15 @@ Add your own Chapter by modifying the case statement in the configuration:
 ## Advanced Features
 
 ### Imperial Dating System
+
 The terminal displays dates in proper M41/M42 format:
+
 - **M42.025.147.1430** - 42nd Millennium, year 025, day 147, time 14:30
 
 ### Rank Progression System
+
 Your rank advances based on system usage:
+
 - **Battle-Brother** - New recruits
 - **Veteran** - 7+ days uptime, 50+ logins  
 - **Sergeant** - 30+ days uptime, 200+ logins
@@ -171,11 +187,13 @@ Your rank advances based on system usage:
 - **Chapter Master** - 365+ days uptime, 1000+ logins
 
 ### Random Events
+
 - **Warp Storm Warnings** - Rare events during network operations (0.5% chance)
 - **Imperial Blessings** - Random wisdom at startup
 - **Heresy Detection** - Humorous warnings about recreational processes
 
 ### Contextual Intelligence
+
 - **Dawn Patrol** messages in the morning
 - **Night Watch** notifications during late hours
 - **Midday Observance** reminders during lunch
@@ -193,6 +211,7 @@ This configuration appeals to different Warhammer 40K community segments:
 ## Advanced Usage Examples
 
 ### Daily Imperial Ritual
+
 ```bash
 # Morning purification sequence
 purify-system && cleanse-heresy && imperial-status
@@ -202,6 +221,7 @@ emperor-blessing && machine-blessing
 ```
 
 ### Network Reconnaissance Mission
+
 ```bash
 # Complete reconnaissance protocol
 recon-scan 192.168.1.0/24
@@ -210,6 +230,7 @@ deep-scan --target-validation required
 ```
 
 ### Chapter Brotherhood Commands
+
 ```bash
 # Display Chapter information
 chapter-oath && imperial-status
@@ -223,6 +244,7 @@ machine-blessing && praise-omnissiah
 ### Common Imperial Issues
 
 **Colors not displaying properly:**
+
 ```bash
 # Verify terminal capabilities
 echo $TERM
@@ -230,6 +252,7 @@ echo $TERM
 ```
 
 **Chapter configuration not loading:**
+
 ```bash
 # Recreate configuration file
 rm ~/.imperial_chapter_config
@@ -237,6 +260,7 @@ source ~/.zshrc  # Will auto-create new config
 ```
 
 **Machine spirit corruption (shell errors):**
+
 ```bash
 # Emergency restoration protocol
 cp ~/.zshrc.backup ~/.zshrc && source ~/.zshrc
@@ -244,6 +268,7 @@ emperor-blessing  # Restore Imperial favor
 ```
 
 ### Performance Optimization
+
 - Uses minimal system resources
 - Efficient prompt updates with TMOUT
 - Cached function results where possible
@@ -252,6 +277,7 @@ emperor-blessing  # Restore Imperial favor
 ## Contributing to the Imperium
 
 Submit your improvements:
+
 - Additional Space Marine Chapters
 - New Imperial-themed aliases
 - Enhanced ASCII art and symbols
@@ -259,6 +285,7 @@ Submit your improvements:
 - Performance optimizations
 
 ### Development Guidelines
+
 - Maintain lore accuracy
 - Ensure cross-platform compatibility
 - Test on both Zsh and Bash

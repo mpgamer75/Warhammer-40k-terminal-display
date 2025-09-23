@@ -159,16 +159,16 @@ function imperial_time() {
 
 # Système de rangs basé sur l'uptime et l'utilisation
 function imperial_rank() {
-    local uptime_days=$(uptime | grep -oE '[0-9]+ day' | cut -d' ' -f1 2>/dev/null || echo "0")
-    local login_count=$(last -n 100 $(whoami) | wc -l)
+    local uptime_days=$(uptime | grep -oE '[0-9]+ day' | cut -d' ' -f1 2>/dev/null)
+    if [[ -z "$uptime_days" ]]; then
+        uptime_days=0
+    fi
     
-    if [[ $uptime_days -gt 365 ]] && [[ $login_count -gt 1000 ]]; then
-        echo "CHAPTER MASTER"
-    elif [[ $uptime_days -gt 100 ]] && [[ $login_count -gt 500 ]]; then
+    if [[ $uptime_days -gt 100 ]]; then
         echo "CAPTAIN"
-    elif [[ $uptime_days -gt 30 ]] && [[ $login_count -gt 200 ]]; then
+    elif [[ $uptime_days -gt 30 ]]; then
         echo "SERGEANT"
-    elif [[ $uptime_days -gt 7 ]] && [[ $login_count -gt 50 ]]; then
+    elif [[ $uptime_days -gt 7 ]]; then
         echo "VETERAN"
     else
         echo "BATTLE-BROTHER"
@@ -178,8 +178,8 @@ function imperial_rank() {
 # Messages d'erreur thématiques
 function command_not_found_handler() {
     echo -e "${RED_WARNING}╔══════════════════════════════════════╗${RESET}"
-    echo -e "${RED_WARNING}║  HERETICAL COMMAND DETECTED: '$1'   ║${RESET}"
-    echo -e "${RED_WARNING}║  Consult the Sacred Codex below     ║${RESET}"
+    echo -e "${RED_WARNING}║  HERETICAL COMMAND DETECTED: '$1'    ║${RESET}"
+    echo -e "${RED_WARNING}║  Consult the Sacred Codex below      ║${RESET}"
     echo -e "${RED_WARNING}╚══════════════════════════════════════╝${RESET}"
     echo -e "${GREEN_PHOSPHOR}Sacred Command: help-imperial${RESET}"
     return 127
@@ -240,12 +240,12 @@ function vox_message() {
     echo -e "${GREEN_PHOSPHOR}╚${line}╝${RESET}"
 }
 
-# Prompt ASTARTES avec rang dynamique et chapitre
-PROMPT='%F{green}╔═══[%B'"$CHAPTER_COLOR"'$(imperial_rank)%b%f%F{green}]═['"$CHAPTER_COLOR"'%n@%M%f%F{green}]═[%F{cyan}%~%f%F{green}]
-╚══'"$CHAPTER_SYMBOL"' %f'
+# Prompt ASTARTES avec rang dynamique et chapitre - VERSION CORRIGÉE
+PROMPT='%F{green}╔═══[%B%F{46}$(imperial_rank)%b%f%F{green}]═[%F{46}%n@%M%f%F{green}]═[%F{cyan}%~%f%F{green}]
+╚══☩ %f'
 
-# Right prompt avec date impériale et chapitre
-RPROMPT='%F{green}['"$CHAPTER_COLOR"'$(imperial_date)%f%F{green}]'"$CHAPTER_SYMBOL"'%f'
+# Right prompt avec date impériale - VERSION SIMPLIFIÉE
+RPROMPT='%F{green}[%F{46}$(imperial_date)%f%F{green}]☩%f'
 
 # Mettre à jour l'heure chaque seconde
 TMOUT=1
@@ -543,8 +543,10 @@ EOF
     fi
 }
 
-# Créer le fichier de config au premier lancement
-create_chapter_configWHITE_TEXT} praise-omnissiah   ${GREEN_PHOSPHOR}- Bénédiction Mechanicus + uptime${RESET}"
+# Fonction d'aide impériale complète - VERSION CORRIGÉE
+function help-imperial() {
+    echo -e "${GREEN_PHOSPHOR}╔═══ FONCTIONS RITUELLES ═══╗${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} praise-omnissiah   ${GREEN_PHOSPHOR}- Bénédiction Mechanicus + uptime${RESET}"
     echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} binary-prayer      ${GREEN_PHOSPHOR}- Prière Empereur en binaire${RESET}"
     echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} machine-blessing   ${GREEN_PHOSPHOR}- Rituel bénédiction machine${RESET}"
     echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} emperor-blessing   ${GREEN_PHOSPHOR}- Bénédiction impériale complète${RESET}"
@@ -602,3 +604,33 @@ create_chapter_configWHITE_TEXT} praise-omnissiah   ${GREEN_PHOSPHOR}- Bénédic
     echo ""
     echo -e "${AMBER_ALERT}Use 'chapter-config' to customize your Chapter settings${RESET}"
     echo -e "${GREEN_PHOSPHOR}The Emperor protects those who serve with knowledge${RESET}"
+}
+
+# Création automatique du fichier de configuration chapitre s'il n'existe pas
+function create_chapter_config() {
+    if [[ ! -f "$IMPERIAL_CONFIG_FILE" ]]; then
+        cat > "$IMPERIAL_CONFIG_FILE" << 'EOF'
+# Imperial Chapter Configuration File
+# Modify these values to customize your Chapter
+
+IMPERIAL_CHAPTER="ULTRAMARINES"
+COMPANY="2nd Company" 
+SQUAD="Tactical Squad Titus"
+BATTLE_HONORS=("Hive Fleet Behemoth" "Siege of Macragge" "Defence of Macragge")
+
+# Available Chapters:
+# - ULTRAMARINES (default blue/gold)
+# - BLOOD_ANGELS (red/gold)
+# - DARK_ANGELS (dark green/bone)
+# - SPACE_WOLVES (grey/orange)
+# - IMPERIAL_FISTS (yellow/black)
+# 
+# You can add custom chapters by modifying the case statement in .zshrc
+EOF
+        echo -e "${GREEN_PHOSPHOR}Chapter configuration file created at: $IMPERIAL_CONFIG_FILE${RESET}"
+        echo -e "${AMBER_ALERT}Edit with: chapter-config${RESET}"
+    fi
+}
+
+# Créer le fichier de config au premier lancement
+create_chapter_config

@@ -8,7 +8,7 @@
 
 ## Overview
 
-Transform your Linux terminal into an **Imperial Command Terminal**.
+Transform your Linux terminal into an **Imperial Command Terminal** with authentic Warhammer 40K aesthetics, interactive features, and immersive gameplay elements.
 
 ## Compatibility
 
@@ -25,11 +25,11 @@ This configuration supports:
 - **Dynamic Chapter system** - Choose your Space Marine Chapter with authentic colors
 - **Imperial dating system** - M41/M42 timeline with proper Imperial format
 - **Rank progression** - Advance from Battle-Brother to Chapter Master based on system usage
-- **Palette de couleurs améliorée** - Or impérial authentique, rouge cramoisi, et gris acier
+- **Enhanced color schemes** - Authentic Imperial Aquila gold, crimson red, and steel grey
 - **Real-time chronometer** - Imperial date and time display
 - **Contextual messages** - Different greetings based on time of day
-- **Animations interactives** - Barres de chargement, indicateurs de progrès, et effets dynamiques
-- **ASCII art amélioré** - Crâne impérial avec cadre parfaitement aligné
+- **Interactive animations** - Loading bars, progress indicators, and dynamic effects
+- **Beautiful ASCII art** - Imperial Skull with perfectly aligned borders
 
 ### Combat-Ready Aliases
 
@@ -37,7 +37,7 @@ This configuration supports:
 
 ```bash
 purify-system        # System updates with Imperial ceremony and animations
-cleanse-heresy       # Remove heretical packages with blessing and visual effects
+cleanse-heresy       # Remove heretical packages with blessing
 install-sacred       # Install new software packages
 sacred-logs          # Monitor system logs with sacred protocols
 system-status        # Check service status
@@ -80,14 +80,14 @@ imperial-status      # Complete status report with Imperial formatting
 help-imperial        # Complete command reference with sacred knowledge
 ```
 
-### Fonctionnalités Interactives
+### Interactive Features
 
-Nouvelles fonctions dynamiques et interactives :
+New dynamic and interactive features:
 
-- **imperial_loading** - Séquences de chargement animées avec indicateurs de progrès
-- **imperial_progress** - Barres de progression élégantes pour les opérations longues
-- **imperial_box** - Boîtes de messages stylisées avec bordures
-- **imperial_type** - Effet machine à écrire pour les messages importants
+- **imperial_loading** - Animated loading sequences with progress indicators
+- **imperial_progress** - Beautiful progress bars for long operations
+- **imperial_box** - Stylized message boxes with borders
+- **imperial_type** - Typewriter effect for important messages
 
 ### Chapter System
 
@@ -117,7 +117,7 @@ Each Chapter includes:
 cp ~/.zshrc ~/.zshrc.backup
 
 # Replace with Imperial configuration
-cp imperial-zshrc ~/.zshrc
+cp warhammer_file.sh ~/.zshrc
 
 # Reload your shell
 source ~/.zshrc
@@ -130,7 +130,7 @@ source ~/.zshrc
 cp ~/.bashrc ~/.bashrc.backup
 
 # Replace with Imperial configuration
-cp imperial-zshrc ~/.bashrc
+cp warhammer_file.sh ~/.bashrc
 
 # Reload your shell
 source ~/.bashrc
@@ -209,15 +209,15 @@ Your rank advances based on system usage:
 - **Night Watch** notifications during late hours
 - **Midday Observance** reminders during lunch
 
-### Palette de Couleurs Améliorée
+### Enhanced Color Palette
 
-Couleurs authentiques Warhammer 40K :
+Authentic Warhammer 40K colors:
 
-- **Or Impérial** - `#FFD700` - Pour les éléments sacrés
-- **Rouge Cramoisi** - `#DC143C` - Pour les avertissements et cris de guerre
-- **Gris Acier** - `#7D7F81` - Pour les bordures et éléments décoratifs
-- **Vert Phosphore** - `#33FF66` - Pour les affichages cogitateur
-- **Noir Gothique** - `#1C1C1C` - Pour les arrière-plans
+- **Imperial Gold** - `#FFD700` - For sacred elements
+- **Crimson Red** - `#DC143C` - For warnings and battle cries
+- **Steel Grey** - `#7D7F81` - For borders and decorative elements
+- **Phosphor Green** - `#33FF66` - For cogitator displays
+- **Gothic Black** - `#1C1C1C` - For backgrounds
 
 ## Community Integration
 
@@ -269,7 +269,7 @@ machine-blessing && praise-omnissiah
 ```bash
 # Verify terminal capabilities
 echo $TERM
-# Should support 256 colors
+# Should support 256 colors or truecolor
 ```
 
 **Chapter configuration not loading:**
@@ -288,9 +288,9 @@ cp ~/.zshrc.backup ~/.zshrc && source ~/.zshrc
 emperor-blessing  # Restore Imperial favor
 ```
 
-**Animations trop lentes/rapides :**
+**Animations too slow/fast:**
 
-Ajustez le paramètre de durée dans les appels `imperial_loading` ou modifiez les valeurs de sleep dans les fonctions d'animation.
+Adjust the duration parameter in `imperial_loading` calls or modify the sleep values in the animation functions.
 
 ### Performance Optimization
 
@@ -333,26 +333,18 @@ Submit your improvements:
 
 All aliases and functions use standard system commands with thematic naming. No actual security vulnerabilities are introduced - this is purely aesthetic enhancement for your development workflow.
 
-## Quoi de Neuf dans Cette Version
+## What's New in This Version
 
-### Version 2.0 - Édition Améliorée
+### Version 2.0 - Enhanced Edition
 
-- ✨ **Palette de couleurs améliorée** - Couleurs impériales authentiques Warhammer 40K
-- 🎬 **Animations interactives** - Barres de chargement, indicateurs de progrès, effets de frappe
-- 🎨 **UI/UX améliorée** - Bordures élégantes, meilleur retour visuel
-- 🛡️ **ASCII Art corrigé** - Cadre du crâne impérial parfaitement aligné
-- ⚡ **Fonctions dynamiques** - Nouvelles fonctions utilitaires pour une meilleure expérience
-- 🎯 **Commandes améliorées** - Alias enrichis avec retour visuel
-- 📊 **Barres de progression** - Retour visuel pour les opérations longues
-- 🎭 **Messages stylisés** - Boîtes impériales et sorties formatées
-
-## Fichiers du Projet
-
-- `warhammer_file.sh` - Configuration principale du terminal impérial
-- `README.md` - Documentation en français
-- `README_EN.md` - Documentation en anglais
-- `LICENSE` - Licence MIT
-- `warhammer_image_1.jpg` - Logo du terminal impérial
+- ✨ **Improved Color Palette** - Authentic Warhammer 40K Imperial colors
+- 🎬 **Interactive Animations** - Loading bars, progress indicators, typing effects
+- 🎨 **Enhanced UI/UX** - Beautiful borders, better visual feedback
+- 🛡️ **Fixed ASCII Art** - Perfectly aligned Imperial Skull frame
+- ⚡ **Dynamic Functions** - New utility functions for better user experience
+- 🎯 **Better Commands** - Enhanced aliases with visual feedback
+- 📊 **Progress Bars** - Visual feedback for long-running operations
+- 🎭 **Stylized Messages** - Imperial boxes and formatted outputs
 
 ## License
 
@@ -364,5 +356,6 @@ This configuration is distributed under the MIT License. See the LICENSE file fo
 
 <div align="center">
   <h2><strong>FOR THE EMPEROR</strong></h2>
-  <p><em>Dans les ténèbres du lointain futur, il n'y a que la guerre... et des terminaux magnifiquement thématisés.</em></p>
+  <p><em>In the grim darkness of the far future, there is only war... and beautifully themed terminals.</em></p>
 </div>
+

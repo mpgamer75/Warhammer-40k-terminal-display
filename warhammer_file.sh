@@ -134,10 +134,14 @@ esac
 GREEN_PHOSPHOR="$PRIMARY_COLOR"
 DARK_GREEN="\033[38;2;0;128;0m"
 BRIGHT_GREEN="\033[92m"
-RED_WARNING="\033[38;2;255;0;0m"
-AMBER_ALERT="\033[38;2;255;191;0m"
+RED_WARNING="\033[38;2;183;28;28m"      # Rouge sang W40k
+AMBER_ALERT="\033[38;2;251;192;45m"     # Jaune impérial W40k
 WHITE_TEXT="\033[97m"
 CHAPTER_COLOR="$SECONDARY_COLOR"
+STEEL_GREY="\033[38;2;125;127;129m"     # Gris acier
+GOLD_IMPERIAL="\033[38;2;255;215;0m"    # Or impérial
+CRIMSON_RED="\033[38;2;220;20;60m"      # Rouge cramoisi
+GOTHIC_BLACK="\033[38;2;28;28;28m"      # Noir gothique
 RESET="\033[0m"
 
 # Imperial Date System (M41/M42 timeline)
@@ -155,6 +159,66 @@ function imperial_time() {
     local minute=$(date +%M)
     local second=$(date +%S)
     echo "${hour}${minute}.${second}"
+}
+
+# Animation de chargement impériale
+function imperial_loading() {
+    local message="$1"
+    local duration=${2:-3}
+    echo -ne "${GREEN_PHOSPHOR}${message}${RESET} "
+    for ((i=0; i<duration; i++)); do
+        echo -ne "${BRIGHT_GREEN}▓${RESET}"
+        sleep 0.3
+    done
+    echo -e " ${BRIGHT_GREEN}[✓]${RESET}"
+}
+
+# Barre de progression impériale
+function imperial_progress() {
+    local current=$1
+    local total=$2
+    local width=50
+    local percentage=$((current * 100 / total))
+    local filled=$((width * current / total))
+    local empty=$((width - filled))
+    
+    printf "\r${GREEN_PHOSPHOR}["
+    printf "%${filled}s" | tr ' ' '█'
+    printf "${STEEL_GREY}%${empty}s" | tr ' ' '░'
+    printf "${GREEN_PHOSPHOR}] ${GOLD_IMPERIAL}%3d%%${RESET}" "$percentage"
+    
+    if [ "$current" -eq "$total" ]; then
+        echo ""
+    fi
+}
+
+# Affichage stylé avec bordures
+function imperial_box() {
+    local message="$1"
+    local color="${2:-$GREEN_PHOSPHOR}"
+    local length=${#message}
+    local border_length=$((length + 4))
+    
+    printf "${color}╔"
+    printf "═%.0s" $(seq 1 $border_length)
+    printf "╗\n"
+    printf "║  %s  ║\n" "$message"
+    printf "╚"
+    printf "═%.0s" $(seq 1 $border_length)
+    printf "╝${RESET}\n"
+}
+
+# Effet de typing pour les messages importants
+function imperial_type() {
+    local text="$1"
+    local color="${2:-$GREEN_PHOSPHOR}"
+    local delay=${3:-0.03}
+    
+    for ((i=0; i<${#text}; i++)); do
+        echo -ne "${color}${text:$i:1}${RESET}"
+        sleep "$delay"
+    done
+    echo ""
 }
 
 # Système de rangs basé sur l'uptime et l'utilisation
@@ -256,8 +320,8 @@ TRAPALRM() {
 # IMPERIAL ALIASES - SERVICE À L'EMPEREUR
 
 # === SYSTEM PURIFICATION ===
-alias purify-system='vox_message "INITIATING SYSTEM PURIFICATION PROTOCOL" && sudo apt update && sudo apt upgrade && success_litany'
-alias cleanse-heresy='vox_message "PURGING HERETICAL DATA" && sudo apt autoremove && sudo apt autoclean && success_litany'
+alias purify-system='echo -e "${GOLD_IMPERIAL}╔═══════════════════════════════════════════════════════════╗${RESET}"; echo -e "${GOLD_IMPERIAL}║  INITIATING SYSTEM PURIFICATION PROTOCOL                  ║${RESET}"; echo -e "${GOLD_IMPERIAL}╚═══════════════════════════════════════════════════════════╝${RESET}"; imperial_loading "Sanctifying system repositories" 2; sudo apt update && sudo apt upgrade && success_litany'
+alias cleanse-heresy='echo -e "${CRIMSON_RED}╔═══════════════════════════════════════════════════════════╗${RESET}"; echo -e "${CRIMSON_RED}║  PURGING HERETICAL DATA FROM SYSTEM                       ║${RESET}"; echo -e "${CRIMSON_RED}╚═══════════════════════════════════════════════════════════╝${RESET}"; imperial_loading "Cleansing corrupted packages" 2; sudo apt autoremove && sudo apt autoclean && success_litany'
 alias install-sacred='sudo apt install'
 alias search-archives='sudo apt search'
 alias sacred-logs='sudo tail -f /var/log/syslog'
@@ -368,10 +432,13 @@ function detect_heresy() {
 # IMPERIAL TERMINAL INITIALIZATION - IMPERIAL SKULL
 clear
 
-# Affichage du chapitre et motto
+# Affichage du chapitre et motto avec centrage dynamique
+chapter_line="                              ${IMPERIAL_CHAPTER}                                    "
+motto_line="                            ${CHAPTER_MOTTO}                     "
+
 echo -e "${PRIMARY_COLOR}╔══════════════════════════════════════════════════════════════════════════════════════╗${RESET}"
-echo -e "${PRIMARY_COLOR}║${CHAPTER_COLOR}                              ${IMPERIAL_CHAPTER}                                    ${PRIMARY_COLOR}║${RESET}"
-echo -e "${PRIMARY_COLOR}║${WHITE_TEXT}                            ${CHAPTER_MOTTO}                     ${PRIMARY_COLOR}║${RESET}"
+printf "${PRIMARY_COLOR}║${CHAPTER_COLOR}%-86s${PRIMARY_COLOR}║${RESET}\n" "${chapter_line:0:86}"
+printf "${PRIMARY_COLOR}║${WHITE_TEXT}%-86s${PRIMARY_COLOR}║${RESET}\n" "${motto_line:0:86}"
 echo -e "${PRIMARY_COLOR}╚══════════════════════════════════════════════════════════════════════════════════════╝${RESET}"
 echo ""
 
@@ -382,22 +449,22 @@ echo "║                                     ______                            
 echo '║                                  .-"      "-.                                        ║'
 echo "║                                 /            \\                                       ║"
 echo "║                     _          |              |          _                           ║"
-echo "║                    ( \\         |,  .-.  .-.  ,|         / )                         ║"
-echo '║                     > "=._     | )(__/  \__)( |     _.=" <                          ║'
-echo '║                    (_/"=._"=._ |/     /\     \| _.="_."=\_)                         ║'
-echo '║                           "=._ (_     ^^     _)"_.="                                ║'
-echo '║                               "=\__|IIIIII|__/="                                    ║'
-echo '║                              _.="| \IIIIII/ |"=._                                   ║'
-echo '║                    _     _.="_."="\          /"=._"=._     _                        ║'
-echo '║                   ( \_.="_."="     \--------\     "=._"=._/ )                       ║'
-echo '║                    > _.="                            "=._ <                        ║'
-echo "║                   (_/                                    \\_)                       ║"
+echo "║                    ( \\         |,  .-.  .-.  ,|         / )                          ║"
+echo '║                     > "=._     | )(__/  \__)( |     _.=" <                           ║'
+echo '║                    (_/"=._"=._ |/     /\     \| _.="_."=\_)                          ║'
+echo '║                           "=._ (_     ^^     _)"_.="                                 ║'
+echo '║                               "=\__|IIIIII|__/="                                     ║'
+echo '║                              _.="| \IIIIII/ |"=._                                    ║'
+echo '║                    _     _.="_."="\          /"=._"=._     _                         ║'
+echo '║                   ( \_.="_."="     \--------/     "=._"=._/ )                        ║'
+echo '║                    > _.="                            "=._ <                          ║'
+echo "║                   (_/                                    \\_)                        ║"
 echo "║                                                                                      ║"
 echo "║                           ⚔ IMPERIAL COMMAND TERMINAL ⚔                             ║"
 echo "║                                                                                      ║"
-echo -e "║                    ${WHITE_TEXT}>> MACHINE SPIRIT AWAKENING SEQUENCE <<${GREEN_PHOSPHOR}                    ║"
+echo "║                    >> MACHINE SPIRIT AWAKENING SEQUENCE <<                           ║"
 echo "║                                                                                      ║"
-echo -e "║                ${RED_WARNING}⚠${GREEN_PHOSPHOR} SACRED KNOWLEDGE CONTAINED - GUARD IT WELL ${RED_WARNING}⚠${GREEN_PHOSPHOR}              ║"
+echo -e "║               ${RED_WARNING}⚠${GREEN_PHOSPHOR}  SACRED KNOWLEDGE CONTAINED - GUARD IT WELL  ${RED_WARNING}⚠${GREEN_PHOSPHOR}               ║${RESET}"
 echo "║                                                                                      ║"
 echo "║               Blessed is the mind too small for doubt                                ║"
 echo "║               An open mind is like a fortress with its gates unbarred               ║"
@@ -405,21 +472,23 @@ echo "║               Hope is the first step on the road to disappointment    
 echo "║               Fear the alien, the mutant, the heretic                               ║"
 echo "║               In the grim darkness of the far future, there is only war             ║"
 echo "║                                                                                      ║"
-echo -e "║                           ${AMBER_ALERT}☩ THE EMPEROR PROTECTS ☩${GREEN_PHOSPHOR}                             ║"
+echo -e "║                           ${AMBER_ALERT}☩ THE EMPEROR PROTECTS ☩${GREEN_PHOSPHOR}                             ║${RESET}"
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 # COGITATOR STATUS MATRIX
 echo ""
-echo -e "${GREEN_PHOSPHOR}╔═══ COGITATOR STATUS MATRIX ═══╗${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}$(imperial_rank):${GREEN_PHOSPHOR} $(whoami)${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Battle Barge:${GREEN_PHOSPHOR} $(hostname)${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Chapter:${GREEN_PHOSPHOR} ${IMPERIAL_CHAPTER}${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Company:${GREEN_PHOSPHOR} ${COMPANY}${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Squad:${GREEN_PHOSPHOR} ${SQUAD}${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}System Uptime:${GREEN_PHOSPHOR} $(uptime -p)${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Imperial Date:${GREEN_PHOSPHOR} $(imperial_date)${RESET}"
-echo -e "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}Current Sector:${GREEN_PHOSPHOR} $(pwd)${RESET}"
-echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
+echo -e "${GREEN_PHOSPHOR}╔══════════════════════════════════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${GREEN_PHOSPHOR}║                         COGITATOR STATUS MATRIX                                      ║${RESET}"
+echo -e "${GREEN_PHOSPHOR}╠══════════════════════════════════════════════════════════════════════════════════════╣${RESET}"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Rank:" "$(imperial_rank) - $(whoami)"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Battle Barge:" "$(hostname)"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Chapter:" "${IMPERIAL_CHAPTER}"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Company:" "${COMPANY}"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Squad:" "${SQUAD}"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "System Uptime:" "$(uptime -p)"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Imperial Date:" "$(imperial_date)"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Current Sector:" "$(pwd)"
+echo -e "${GREEN_PHOSPHOR}╚══════════════════════════════════════════════════════════════════════════════════════╝${RESET}"
 
 # Messages contextuels
 echo ""
@@ -428,10 +497,29 @@ random_blessing
 detect_heresy
 
 echo ""
-echo -e "${AMBER_ALERT}>> Initiating Imperial data-protocols...${RESET}"
-echo -e "${GREEN_PHOSPHOR}>> Machine spirit initialized successfully${RESET}"
-echo -e "${GREEN_PHOSPHOR}>> Battle cry: ${BATTLE_CRY}${RESET}"
-echo -e "${GREEN_PHOSPHOR}>> Awaiting sacred binary inputs...${RESET}"
+echo -e "${AMBER_ALERT}╔═══════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${AMBER_ALERT}║         INITIATING IMPERIAL AWAKENING SEQUENCE            ║${RESET}"
+echo -e "${AMBER_ALERT}╚═══════════════════════════════════════════════════════════╝${RESET}"
+echo ""
+
+# Séquence de chargement animée
+imperial_loading "» Activating cogitator core" 2
+imperial_loading "» Initializing data-protocols" 2
+imperial_loading "» Blessing machine spirit" 2
+imperial_loading "» Establishing vox-communications" 2
+imperial_loading "» Loading tactical interface" 2
+
+echo ""
+echo -e "${GREEN_PHOSPHOR}╔═══════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${GREEN_PHOSPHOR}║  ✓  MACHINE SPIRIT INITIALIZED SUCCESSFULLY               ║${RESET}"
+echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════════════════════════════════╝${RESET}"
+echo ""
+echo -e "${GOLD_IMPERIAL}⚔ Chapter Battle Cry: ${CRIMSON_RED}${BATTLE_CRY}${RESET}"
+echo -e "${GREEN_PHOSPHOR}⚙ System ready - Awaiting sacred binary inputs...${RESET}"
+echo ""
+echo -e "${STEEL_GREY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${AMBER_ALERT}» Type ${WHITE_TEXT}'help-imperial'${AMBER_ALERT} to view all available commands${RESET}"
+echo -e "${STEEL_GREY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 echo ""
 
 # Added by Encryptor installer
@@ -450,15 +538,18 @@ function binary-prayer() {
 }
 
 function machine-blessing() {
-    echo -e "${GREEN_PHOSPHOR}☩ Blessing the machine in the Emperor's name... ☩${RESET}"
-    sleep 1
-    echo -e "${GREEN_PHOSPHOR}Sacred oils applied...${RESET}"
-    sleep 1
-    echo -e "${GREEN_PHOSPHOR}Imperial incense burned...${RESET}"
-    sleep 1
-    echo -e "${GREEN_PHOSPHOR}Litanies of the Emperor recited...${RESET}"
-    sleep 1
-    echo -e "${AMBER_ALERT}⚔ By His will, the machine serves faithfully! ⚔${RESET}"
+    echo -e "${GOLD_IMPERIAL}╔═══════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${GOLD_IMPERIAL}║      COMMENCING MACHINE SPIRIT BLESSING RITUAL            ║${RESET}"
+    echo -e "${GOLD_IMPERIAL}╚═══════════════════════════════════════════════════════════╝${RESET}"
+    echo ""
+    imperial_loading "☩ Blessing the machine in the Emperor's name" 3
+    imperial_loading "⚙ Applying sacred oils to components" 3
+    imperial_loading "Burning imperial incense" 3
+    imperial_loading "Reciting Litanies of the Emperor" 3
+    echo ""
+    echo -e "${CRIMSON_RED}⚔═══════════════════════════════════════════════════════════⚔${RESET}"
+    echo -e "${GREEN_PHOSPHOR}   By His will, the machine serves faithfully!${RESET}"
+    echo -e "${CRIMSON_RED}⚔═══════════════════════════════════════════════════════════⚔${RESET}"
 }
 
 function emperor-blessing() {

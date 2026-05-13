@@ -81,15 +81,29 @@ source $ZSH/oh-my-zsh.sh
 
 # Load Imperial Chapter Configuration
 IMPERIAL_CONFIG_FILE="$HOME/.imperial_chapter_config"
-if [[ -f "$IMPERIAL_CONFIG_FILE" ]]; then
-    source "$IMPERIAL_CONFIG_FILE"
-else
-    # Default configuration if no chapter file exists
-    IMPERIAL_CHAPTER="ULTRAMARINES"
-    COMPANY="2nd Company"
-    SQUAD="Tactical Squad Titus"
-    BATTLE_HONORS=("Hive Fleet Behemoth" "Siege of Macragge")
+
+# Create the chapter-config file on first launch *before* sourcing it, so the
+# very first shell already reflects user-customizable defaults (previously the
+# file was created after the banner finished, requiring a second shell).
+if [[ ! -f "$IMPERIAL_CONFIG_FILE" ]]; then
+    cat > "$IMPERIAL_CONFIG_FILE" << 'EOF'
+# Imperial Chapter Configuration File
+# Modify these values to customize your Chapter
+
+IMPERIAL_CHAPTER="ULTRAMARINES"
+COMPANY="2nd Company"
+SQUAD="Tactical Squad Titus"
+BATTLE_HONORS=("Hive Fleet Behemoth" "Siege of Macragge" "Defence of Macragge")
+
+# Available Chapters:
+# - ULTRAMARINES (default blue/gold)
+# - BLOOD_ANGELS (red/gold)
+# - DARK_ANGELS (dark green/bone)
+# - SPACE_WOLVES (grey/orange)
+# - IMPERIAL_FISTS (yellow/black)
+EOF
 fi
+source "$IMPERIAL_CONFIG_FILE"
 
 # Imperial Chapter Color System
 case $IMPERIAL_CHAPTER in
@@ -130,6 +144,18 @@ case $IMPERIAL_CHAPTER in
         ;;
 esac
 
+# Pretty display form for the chapter token (e.g. BLOOD_ANGELS → "Blood Angels").
+imperial_chapter_display() {
+    case "$IMPERIAL_CHAPTER" in
+        ULTRAMARINES)   echo "Ultramarines" ;;
+        BLOOD_ANGELS)   echo "Blood Angels" ;;
+        DARK_ANGELS)    echo "Dark Angels" ;;
+        SPACE_WOLVES)   echo "Space Wolves" ;;
+        IMPERIAL_FISTS) echo "Imperial Fists" ;;
+        *)              echo "$IMPERIAL_CHAPTER" ;;
+    esac
+}
+
 # Couleurs phosphore vert authentique des terminaux impériaux + couleurs chapitre
 GREEN_PHOSPHOR="$PRIMARY_COLOR"
 DARK_GREEN="\033[38;2;0;128;0m"
@@ -145,12 +171,16 @@ GOTHIC_BLACK="\033[38;2;28;28;28m"      # Noir gothique
 RESET="\033[0m"
 
 # Imperial Date System (M41/M42 timeline)
+# Offset chosen so the current real year lands in M42 (lore-consistent with the
+# "current" 40K era). 2026 → 42026 → M42.026.
 function imperial_date() {
     local year=$(date +%Y)
-    local imperial_year=$((year + 28000))
-    local day_of_year=$(date +%j)
-    local time=$(date +%H%M)
-    echo "M${imperial_year:0:2}.${imperial_year:2:3}.${day_of_year}.${time}"
+    local imperial_year=$((year + 40000))
+    printf "M%02d.%03d.%s.%s\n" \
+        "$((imperial_year / 1000))" \
+        "$((imperial_year % 1000))" \
+        "$(date +%j)" \
+        "$(date +%H%M)"
 }
 
 # Imperial Time Format
@@ -221,25 +251,28 @@ function imperial_type() {
     echo ""
 }
 
-# Système de rangs basé sur l'uptime et l'utilisation
+# Système de rangs basé sur l'uptime
+# /proc/uptime is reliable across reboots and gives seconds directly,
+# unlike `uptime` whose text format omits "days" when < 1 day.
 function imperial_rank() {
-    local uptime_days=$(uptime | grep -oE '[0-9]+ day' | cut -d' ' -f1 2>/dev/null)
-    if [[ -z "$uptime_days" ]]; then
-        uptime_days=0
-    fi
-    
-    if [[ $uptime_days -gt 100 ]]; then
-        echo "CAPTAIN"
-    elif [[ $uptime_days -gt 30 ]]; then
-        echo "SERGEANT"
-    elif [[ $uptime_days -gt 7 ]]; then
-        echo "VETERAN"
+    local up_seconds up_days
+    if [[ -r /proc/uptime ]]; then
+        up_seconds=$(awk '{print int($1)}' /proc/uptime)
     else
-        echo "BATTLE-BROTHER"
+        up_seconds=0
+    fi
+    up_days=$((up_seconds / 86400))
+
+    if   (( up_days >= 365 )); then echo "CHAPTER-MASTER"
+    elif (( up_days >= 100 )); then echo "CAPTAIN"
+    elif (( up_days >= 30 ));  then echo "SERGEANT"
+    elif (( up_days >= 7 ));   then echo "VETERAN"
+    else                            echo "BATTLE-BROTHER"
     fi
 }
 
 # Messages d'erreur thématiques
+# zsh calls command_not_found_handler; bash calls command_not_found_handle.
 function command_not_found_handler() {
     echo -e "${RED_WARNING}╔══════════════════════════════════════╗${RESET}"
     echo -e "${RED_WARNING}║  HERETICAL COMMAND DETECTED: '$1'    ║${RESET}"
@@ -248,6 +281,7 @@ function command_not_found_handler() {
     echo -e "${GREEN_PHOSPHOR}Sacred Command: help-imperial${RESET}"
     return 127
 }
+command_not_found_handle() { command_not_found_handler "$@"; }
 
 # Bénédictions impériales aléatoires
 imperial_blessings=(
@@ -268,7 +302,7 @@ function random_blessing() {
     echo -e "${AMBER_ALERT}Imperial Wisdom: ${blessing}${RESET}"
 }
 
-# Détection d'événements warp
+# Détection d'événements warp (flavor only — always returns success)
 function warp_storm_check() {
     if [[ $((RANDOM % 200)) -lt 1 ]]; then  # 0.5% de chance
         echo -e "${RED_WARNING}╔═════════ WARP ANOMALY DETECTED ═════════╗${RESET}"
@@ -278,6 +312,22 @@ function warp_storm_check() {
         sleep 1
         echo -e "${GREEN_PHOSPHOR}The Emperor's light guides us through the storm${RESET}"
     fi
+}
+
+# Authorization gate for offensive recon (nmap). Returns non-zero unless
+# IMPERIAL_AUTHORIZED=1 is set, blocking the scan with a printed warning.
+function imperial_nmap_check() {
+    if [[ "$IMPERIAL_AUTHORIZED" != "1" ]]; then
+        echo -e "${RED_WARNING}╔════════════════════════════════════════════════════════════╗${RESET}"
+        echo -e "${RED_WARNING}║ ⚠  Network reconnaissance requires authorization.          ║${RESET}"
+        echo -e "${RED_WARNING}║    Scanning networks you do not own may be illegal         ║${RESET}"
+        echo -e "${RED_WARNING}║    (CFAA, Computer Misuse Act, equivalents).               ║${RESET}"
+        echo -e "${RED_WARNING}║                                                            ║${RESET}"
+        echo -e "${RED_WARNING}║    To proceed: export IMPERIAL_AUTHORIZED=1                ║${RESET}"
+        echo -e "${RED_WARNING}╚════════════════════════════════════════════════════════════╝${RESET}"
+        return 1
+    fi
+    return 0
 }
 
 # Messages de succès/échec pour opérations importantes
@@ -294,28 +344,34 @@ function failure_litany() {
 function vox_message() {
     local message="$1"
     local length=${#message}
+    # Inner width is fixed at 50; truncate long messages so padding stays positive.
+    if (( length > 48 )); then
+        message="${message:0:45}..."
+        length=${#message}
+    fi
     local padding=$(( (50 - length) / 2 ))
     local line=""
-    
+
     for ((i=0; i<50; i++)); do line+="═"; done
-    
+
     echo -e "${GREEN_PHOSPHOR}╔${line}╗${RESET}"
     printf "${GREEN_PHOSPHOR}║%*s%s%*s║${RESET}\n" $padding "" "$message" $((50 - length - padding)) ""
     echo -e "${GREEN_PHOSPHOR}╚${line}╝${RESET}"
 }
 
-# Prompt ASTARTES avec rang dynamique et chapitre - VERSION CORRIGÉE
-PROMPT='%F{green}╔═══[%B%F{46}$(imperial_rank)%b%f%F{green}]═[%F{46}%n@%M%f%F{green}]═[%F{cyan}%~%f%F{green}]
+# Prompt ASTARTES (zsh-only — %F{}, RPROMPT, zle are zsh extensions; bash falls
+# back to its own PS1 elsewhere). TMOUT=60 instead of 1 so the prompt only redraws
+# once a minute, avoiding sub-second fork-exec storms from $(imperial_date).
+if [[ -n "$ZSH_VERSION" ]]; then
+    PROMPT='%F{green}╔═══[%B%F{46}$(imperial_rank)%b%f%F{green}]═[%F{46}%n@%M%f%F{green}]═[%F{cyan}%~%f%F{green}]
 ╚══☩ %f'
+    RPROMPT='%F{green}[%F{46}$(imperial_date)%f%F{green}]☩%f'
 
-# Right prompt avec date impériale - VERSION SIMPLIFIÉE
-RPROMPT='%F{green}[%F{46}$(imperial_date)%f%F{green}]☩%f'
-
-# Mettre à jour l'heure chaque seconde
-TMOUT=1
-TRAPALRM() {
-    zle reset-prompt 2>/dev/null || true
-}
+    TMOUT=60
+    TRAPALRM() {
+        zle reset-prompt 2>/dev/null || true
+    }
+fi
 
 # IMPERIAL ALIASES - SERVICE À L'EMPEREUR
 
@@ -331,10 +387,12 @@ alias scan-machine='ps aux'
 alias storage-status='df -h'
 
 # === RECONNAISSANCE & SECURITY ===
-alias recon-scan='warp_storm_check && nmap -sn'
-alias full-augury='warp_storm_check && nmap -sV -O -T4 --script=default'
-alias stealth-probe='warp_storm_check && nmap -sS -T2 -f'
-alias deep-scan='warp_storm_check && nmap -sS -sU -T4 -A -v --script=vuln'
+# All nmap aliases are gated by imperial_nmap_check; set IMPERIAL_AUTHORIZED=1
+# only when scanning networks you own or have written permission to test.
+alias recon-scan='imperial_nmap_check && { warp_storm_check; nmap -sn; }'
+alias full-augury='imperial_nmap_check && { warp_storm_check; nmap -sV -O -T4 --script=default; }'
+alias stealth-probe='imperial_nmap_check && { warp_storm_check; nmap -sS -T2 -f; }'
+alias deep-scan='imperial_nmap_check && { warp_storm_check; nmap -sS -sU -T4 -A -v --script=vuln; }'
 alias active-channels='netstat -tulanp | grep LISTEN'
 alias external-position='curl -s https://ipinfo.io/ip'
 alias open-ports='ss -tuln'
@@ -346,7 +404,23 @@ alias read-scroll='cat'
 alias inscribe='nano'
 alias duplicate='cp'
 alias relocate='mv'
-alias purge='rm -rf'
+purge() {
+    if (( $# == 0 )); then
+        echo -e "${AMBER_ALERT}Usage: purge <target> [more targets...]${RESET}" >&2
+        return 1
+    fi
+    echo -e "${RED_WARNING}⚠ Purge protocol — the following will be removed recursively:${RESET}"
+    local t
+    for t in "$@"; do echo "    $t"; done
+    printf "%s" "Confirm with EXTERMINATUS: "
+    local confirm
+    read -r confirm
+    if [[ "$confirm" != "EXTERMINATUS" ]]; then
+        echo "Purge aborted. The Emperor has spared the data this day."
+        return 1
+    fi
+    rm -rf -- "$@"
+}
 alias compress='tar -czf'
 alias extract='tar -xzf'
 
@@ -365,7 +439,17 @@ alias chapter-config='nano ~/.imperial_chapter_config'
 # === UTILITY ===
 alias c='clear'
 alias identity='whoami && id && groups'
-alias shutdown-now='vox_message "INITIATING EMERGENCY SHUTDOWN PROTOCOL" && sudo shutdown -h now'
+shutdown-now() {
+    vox_message "INITIATING EMERGENCY SHUTDOWN PROTOCOL"
+    printf "%s" "Confirm shutdown — type EMPEROR: "
+    local confirm
+    read -r confirm
+    if [[ "$confirm" != "EMPEROR" ]]; then
+        echo "Shutdown aborted."
+        return 1
+    fi
+    sudo shutdown -h now
+}
 
 # === ENTERTAINMENT ===
 alias machine-spirit='cmatrix -s'
@@ -376,64 +460,81 @@ alias dcbuild='docker compose build'
 alias dcup='docker compose up'
 alias dcdown='docker compose down'
 alias dockps='docker ps --format "{{.ID}} {{.Names}}"'
-docksh(){ docker exec -it $1 /bin/bash; }
+docksh() {
+    [[ -z "$1" ]] && { echo "Usage: docksh <container> [shell]"; return 1; }
+    docker exec -it "$1" "${2:-bash}" 2>/dev/null || docker exec -it "$1" /bin/sh
+}
 
 # History configuration - Mémoire Impériale
 HISTSIZE=100000
 SAVEHIST=100000
 HISTFILE=~/.zsh_history
-setopt HIST_EXPIRE_DUPS_FIRST
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_FIND_NO_DUPS
-setopt HIST_SAVE_NO_DUPS
-setopt APPEND_HISTORY
-setopt SHARE_HISTORY
-setopt INC_APPEND_HISTORY
+# setopt is a zsh builtin; calling it from bash would trigger command_not_found.
+if [[ -n "$ZSH_VERSION" ]]; then
+    setopt HIST_EXPIRE_DUPS_FIRST
+    setopt HIST_IGNORE_DUPS
+    setopt HIST_IGNORE_ALL_DUPS
+    setopt HIST_IGNORE_SPACE
+    setopt HIST_FIND_NO_DUPS
+    setopt HIST_SAVE_NO_DUPS
+    setopt APPEND_HISTORY
+    setopt SHARE_HISTORY
+    setopt INC_APPEND_HISTORY
+fi
 
 # Couleurs IMPERIALES pour ls
 export LS_COLORS='di=01;92:ln=01;96:pi=40;92:so=01;95:do=01;95:bd=40;92;01:cd=40;92;01:or=40;91;01:ex=01;92:*.tar=01;91:*.tgz=01;91:*.arc=01;91:*.arj=01;91:*.taz=01;91:*.lha=01;91:*.lz4=01;91:*.lzh=01;91:*.lzma=01;91:*.tlz=01;91:*.txz=01;91:*.tzo=01;91:*.t7z=01;91:*.zip=01;91:*.z=01;91:*.dz=01;91:*.gz=01;91:*.lrz=01;91:*.lz=01;91:*.lzo=01;91:*.xz=01;91:*.zst=01;91:*.tzst=01;91:*.bz2=01;91:*.bz=01;91:*.tbz=01;91:*.tbz2=01;91:*.tz=01;91:*.deb=01;91:*.rpm=01;91:*.jar=01;91:*.war=01;91:*.ear=01;91:*.sar=01;91:*.rar=01;91:*.alz=01;91:*.ace=01;91:*.zoo=01;91:*.cpio=01;91:*.7z=01;91:*.rz=01;91:*.cab=01;91:*.wim=01;91:*.swm=01;91:*.dwm=01;91:*.esd=01;91:'
 
 # Détection contextuelle selon l'heure
 function contextual_message() {
-    local hour=$(date +%H)
-    
-    if [[ $hour -ge 22 || $hour -le 6 ]]; then
+    # date may emit a leading zero (e.g. "06"). Strip it so arithmetic is base-10,
+    # not octal — otherwise "08" and "09" cause a parse error.
+    local hour=$((10#$(date +%H)))
+
+    if   (( hour >= 22 || hour < 6 )); then
         echo -e "${GREEN_PHOSPHOR}Night Watch Active - The Emperor's vigilance never sleeps${RESET}"
-    elif [[ $hour -ge 12 && $hour -le 14 ]]; then
+    elif (( hour >= 12 && hour <= 14 )); then
         echo -e "${AMBER_ALERT}Midday Observance - Honor the God-Emperor${RESET}"
-    elif [[ $hour -ge 6 && $hour -le 8 ]]; then
+    elif (( hour >= 6 && hour <= 8 )); then
         echo -e "${GREEN_PHOSPHOR}Dawn Patrol - Another day in service of the Emperor${RESET}"
     fi
 }
 
-# Surveillance des processus suspects (de manière humoristique)
+# Surveillance des processus suspects (de manière humoristique).
+# Inner width 46, plus two single-space gutters and two walls = 50 visible cols.
 function detect_heresy() {
     local suspicious_processes=("chrome" "firefox" "discord")
     local detected=false
-    
+
     for proc in "${suspicious_processes[@]}"; do
         if pgrep "$proc" > /dev/null 2>&1; then
             if [[ $detected == false ]]; then
-                echo -e "${RED_WARNING}╔═══ POTENTIAL DISTRACTIONS DETECTED ═══╗${RESET}"
+                echo -e "${RED_WARNING}╔════════════════════════════════════════════════╗${RESET}"
+                printf  "${RED_WARNING}║ %-46s ║${RESET}\n" "POTENTIAL DISTRACTIONS DETECTED"
                 detected=true
             fi
-            echo -e "${RED_WARNING}║ Recreational process active: $proc${RESET}"
+            printf "${RED_WARNING}║ %-46s ║${RESET}\n" "Recreational process active: $proc"
         fi
     done
-    
+
     if [[ $detected == true ]]; then
-        echo -e "${RED_WARNING}║ Focus on your Imperial duties, Battle-Brother${RESET}"
-        echo -e "${RED_WARNING}╚═══════════════════════════════════════════╝${RESET}"
+        printf "${RED_WARNING}║ %-46s ║${RESET}\n" "Focus on your Imperial duties, Battle-Brother"
+        echo -e "${RED_WARNING}╚════════════════════════════════════════════════╝${RESET}"
     fi
 }
 
 # IMPERIAL TERMINAL INITIALIZATION - IMPERIAL SKULL
-clear
+# Banner runs once per interactive shell. Skipped when:
+#   - the shell is non-interactive (scripts, tmux pane init w/o a TTY, etc.)
+#   - IMPERIAL_QUIET=1 is exported (CI/SSH automation)
+#   - the file has already been sourced once this session (reload-config)
+if [[ -z "$IMPERIAL_BANNER_SHOWN" && "$IMPERIAL_QUIET" != "1" && $- == *i* ]]; then
+IMPERIAL_BANNER_SHOWN=1
+# Only wipe scrollback at the outermost shell level; nested shells keep context.
+[[ ${SHLVL:-1} -le 1 ]] && clear
 
 # Affichage du chapitre et motto avec centrage dynamique
-chapter_line="                              ${IMPERIAL_CHAPTER}                                    "
+chapter_line="                              $(imperial_chapter_display)                                    "
 motto_line="                            ${CHAPTER_MOTTO}                     "
 
 echo -e "${PRIMARY_COLOR}╔══════════════════════════════════════════════════════════════════════════════════════╗${RESET}"
@@ -445,34 +546,34 @@ echo ""
 echo -e "${GREEN_PHOSPHOR}"
 echo "╔══════════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                                      ║"
-echo "║                                     ______                                           ║"
-echo '║                                  .-"      "-.                                        ║'
-echo "║                                 /            \\                                       ║"
-echo "║                     _          |              |          _                           ║"
-echo "║                    ( \\         |,  .-.  .-.  ,|         / )                          ║"
-echo '║                     > "=._     | )(__/  \__)( |     _.=" <                           ║'
-echo '║                    (_/"=._"=._ |/     /\     \| _.="_."=\_)                          ║'
-echo '║                           "=._ (_     ^^     _)"_.="                                 ║'
-echo '║                               "=\__|IIIIII|__/="                                     ║'
-echo '║                              _.="| \IIIIII/ |"=._                                    ║'
-echo '║                    _     _.="_."="\          /"=._"=._     _                         ║'
-echo '║                   ( \_.="_."="     \--------/     "=._"=._/ )                        ║'
-echo '║                    > _.="                            "=._ <                          ║'
-echo "║                   (_/                                    \\_)                        ║"
+echo "║                                        ______                                        ║"
+echo '║                                     .-"      "-.                                     ║'
+echo "║                                    /            \\                                    ║"
+echo "║                        _          |              |          _                        ║"
+echo "║                       ( \\         |,  .-.  .-.  ,|         / )                       ║"
+echo '║                        > "=._     | )(__/  \__)( |     _.=" <                        ║'
+echo '║                       (_/"=._"=._ |/     /\     \| _.="_."=\_)                       ║'
+echo '║                              "=._ (_     ^^     _)"_.="                              ║'
+echo '║                                  "=\__|IIIIII|__/="                                  ║'
+echo '║                                 _.="| \IIIIII/ |"=._                                 ║'
+echo '║                       _     _.="_."="\          /"=._"=._     _                      ║'
+echo '║                      ( \_.="_."="     \--------/     "=._"=._/ )                     ║'
+echo '║                       > _.="                            "=._ <                       ║'
+echo "║                      (_/                                    \\_)                      ║"
 echo "║                                                                                      ║"
-echo "║                           ⚔ IMPERIAL COMMAND TERMINAL ⚔                             ║"
+echo "║                            ⚔ IMPERIAL COMMAND TERMINAL ⚔                             ║"
 echo "║                                                                                      ║"
 echo "║                    >> MACHINE SPIRIT AWAKENING SEQUENCE <<                           ║"
 echo "║                                                                                      ║"
-echo -e "║               ${RED_WARNING}⚠${GREEN_PHOSPHOR}  SACRED KNOWLEDGE CONTAINED - GUARD IT WELL  ${RED_WARNING}⚠${GREEN_PHOSPHOR}               ║${RESET}"
+echo -e "║                   ${RED_WARNING}⚠${GREEN_PHOSPHOR}  SACRED KNOWLEDGE CONTAINED - GUARD IT WELL  ${RED_WARNING}⚠${GREEN_PHOSPHOR}                   ║${RESET}"
 echo "║                                                                                      ║"
 echo "║               Blessed is the mind too small for doubt                                ║"
-echo "║               An open mind is like a fortress with its gates unbarred               ║"
-echo "║               Hope is the first step on the road to disappointment                  ║"
-echo "║               Fear the alien, the mutant, the heretic                               ║"
-echo "║               In the grim darkness of the far future, there is only war             ║"
+echo "║               An open mind is like a fortress with its gates unbarred                ║"
+echo "║               Hope is the first step on the road to disappointment                   ║"
+echo "║               Fear the alien, the mutant, the heretic                                ║"
+echo "║               In the grim darkness of the far future, there is only war              ║"
 echo "║                                                                                      ║"
-echo -e "║                           ${AMBER_ALERT}☩ THE EMPEROR PROTECTS ☩${GREEN_PHOSPHOR}                             ║${RESET}"
+echo -e "║                               ${AMBER_ALERT}☩ THE EMPEROR PROTECTS ☩${GREEN_PHOSPHOR}                               ║${RESET}"
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 # COGITATOR STATUS MATRIX
@@ -482,7 +583,7 @@ echo -e "${GREEN_PHOSPHOR}║                         COGITATOR STATUS MATRIX   
 echo -e "${GREEN_PHOSPHOR}╠══════════════════════════════════════════════════════════════════════════════════════╣${RESET}"
 printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Rank:" "$(imperial_rank) - $(whoami)"
 printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Battle Barge:" "$(hostname)"
-printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Chapter:" "${IMPERIAL_CHAPTER}"
+printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Chapter:" "$(imperial_chapter_display)"
 printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Company:" "${COMPANY}"
 printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "Squad:" "${SQUAD}"
 printf "${GREEN_PHOSPHOR}║ ${WHITE_TEXT}%-18s${GREEN_PHOSPHOR} %-63s║${RESET}\n" "System Uptime:" "$(uptime -p)"
@@ -521,6 +622,7 @@ echo -e "${STEEL_GREY}━━━━━━━━━━━━━━━━━━━�
 echo -e "${AMBER_ALERT}» Type ${WHITE_TEXT}'help-imperial'${AMBER_ALERT} to view all available commands${RESET}"
 echo -e "${STEEL_GREY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 echo ""
+fi  # end interactive-banner guard
 
 # Added by Encryptor installer
 export PATH="$HOME/.local/bin:$PATH"
@@ -561,80 +663,46 @@ function emperor-blessing() {
 }
 
 function chapter-oath() {
-    echo -e "${PRIMARY_COLOR}╔═══ CHAPTER OATH ═══╗${RESET}"
-    echo -e "${PRIMARY_COLOR}║ ${CHAPTER_MOTTO} ║${RESET}"
-    echo -e "${PRIMARY_COLOR}╚══════════════════════╝${RESET}"
+    # Border width tracks the motto length so the box never goes asymmetric.
+    local motto_line=" ${CHAPTER_MOTTO} "
+    local w=${#motto_line}
+    # Floor width at 20 cols so very short mottos still look box-like.
+    if (( w < 20 )); then
+        local pad=$(( (20 - w) / 2 ))
+        motto_line="$(printf '%*s' $pad '')${motto_line}$(printf '%*s' $((20 - w - pad)) '')"
+        w=20
+    fi
+    local border
+    border=$(printf '═%.0s' $(seq 1 $w))
+
+    echo -e "${PRIMARY_COLOR}╔${border}╗${RESET}"
+    echo -e "${PRIMARY_COLOR}║${motto_line}║${RESET}"
+    echo -e "${PRIMARY_COLOR}╚${border}╝${RESET}"
     echo -e "${CHAPTER_COLOR}Battle Cry: ${BATTLE_CRY}${RESET}"
 }
 
 function imperial-status() {
+    local up
+    if command -v uptime >/dev/null 2>&1; then
+        up=$(uptime -p 2>/dev/null || uptime)
+    else
+        up="unknown"
+    fi
+    local load
+    load=$(uptime 2>/dev/null | awk -F'load average:' '{ print $2 }')
     echo -e "${GREEN_PHOSPHOR}╔═══ IMPERIAL STATUS REPORT ═══╗${RESET}"
     echo -e "${GREEN_PHOSPHOR}║ Rank: $(imperial_rank)${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║ Chapter: ${IMPERIAL_CHAPTER}${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║ Uptime: $(uptime -p)${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║ Load: $(uptime | awk -F'load average:' '{ print $2 }')${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Chapter: $(imperial_chapter_display)${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Company: ${COMPANY}${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Squad: ${SQUAD}${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Battle Honors: ${BATTLE_HONORS[*]}${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Uptime: ${up}${RESET}"
+    echo -e "${GREEN_PHOSPHOR}║ Load:${load}${RESET}"
     echo -e "${GREEN_PHOSPHOR}║ Date: $(imperial_date)${RESET}"
     echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
 }
 
 # Fonction d'aide impériale complète
-function help-imperial() {
-    echo -e "${GREEN_PHOSPHOR}╔═══ FONCTIONS RITUELLES ═══╗${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} active-channels    ${GREEN_PHOSPHOR}- netstat ports LISTEN${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} external-position  ${GREEN_PHOSPHOR}- IP externe (curl)${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} open-ports         ${GREEN_PHOSPHOR}- ss -tuln ports ouverts${RESET}"
-    echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
-    echo ""
-    echo -e "${GREEN_PHOSPHOR}╔═══ GESTION DONNEES ═══╗${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} list-data          ${GREEN_PHOSPHOR}- ls -alF avec couleurs${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} brief-list         ${GREEN_PHOSPHOR}- ls -CF format court${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} read-scroll        ${GREEN_PHOSPHOR}- cat fichier${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} inscribe           ${GREEN_PHOSPHOR}- nano editeur${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} duplicate          ${GREEN_PHOSPHOR}- cp copie fichier${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} relocate           ${GREEN_PHOSPHOR}- mv deplace fichier${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} purge              ${GREEN_PHOSPHOR}- rm -rf suppression${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} compress           ${GREEN_PHOSPHOR}- tar -czf compression${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} extract            ${GREEN_PHOSPHOR}- tar -xzf extraction${RESET}"
-    echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
-    echo ""
-    echo -e "${GREEN_PHOSPHOR}╔═══ RECHERCHE & FILTRES ═══╗${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} filter-data        ${GREEN_PHOSPHOR}- grep avec couleurs${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} search-pattern     ${GREEN_PHOSPHOR}- grep -r recursif${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} count-lines        ${GREEN_PHOSPHOR}- wc -l compte lignes${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} sort-data          ${GREEN_PHOSPHOR}- sort tri données${RESET}"
-    echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} unique-only        ${GREEN_PHOSPHOR}- uniq éléments uniques${RESET}"
-    echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
-    echo ""
-    echo -e "${AMBER_ALERT}Use 'chapter-config' to customize your Chapter settings${RESET}"
-}
-
-# Création automatique du fichier de configuration chapitre s'il n'existe pas
-function create_chapter_config() {
-    if [[ ! -f "$IMPERIAL_CONFIG_FILE" ]]; then
-        cat > "$IMPERIAL_CONFIG_FILE" << 'EOF'
-# Imperial Chapter Configuration File
-# Modify these values to customize your Chapter
-
-IMPERIAL_CHAPTER="ULTRAMARINES"
-COMPANY="2nd Company" 
-SQUAD="Tactical Squad Titus"
-BATTLE_HONORS=("Hive Fleet Behemoth" "Siege of Macragge" "Defence of Macragge")
-
-# Available Chapters:
-# - ULTRAMARINES (default blue/gold)
-# - BLOOD_ANGELS (red/gold)
-# - DARK_ANGELS (dark green/bone)
-# - SPACE_WOLVES (grey/orange)
-# - IMPERIAL_FISTS (yellow/black)
-# 
-# You can add custom chapters by modifying the case statement in .zshrc
-EOF
-        echo -e "${GREEN_PHOSPHOR}Chapter configuration file created at: $IMPERIAL_CONFIG_FILE${RESET}"
-        echo -e "${AMBER_ALERT}Edit with: chapter-config${RESET}"
-    fi
-}
-
-# Fonction d'aide impériale complète - VERSION CORRIGÉE
 function help-imperial() {
     echo -e "${GREEN_PHOSPHOR}╔═══ FONCTIONS RITUELLES ═══╗${RESET}"
     echo -e "${GREEN_PHOSPHOR}║${WHITE_TEXT} praise-omnissiah   ${GREEN_PHOSPHOR}- Bénédiction Mechanicus + uptime${RESET}"
@@ -697,31 +765,6 @@ function help-imperial() {
     echo -e "${GREEN_PHOSPHOR}The Emperor protects those who serve with knowledge${RESET}"
 }
 
-# Création automatique du fichier de configuration chapitre s'il n'existe pas
-function create_chapter_config() {
-    if [[ ! -f "$IMPERIAL_CONFIG_FILE" ]]; then
-        cat > "$IMPERIAL_CONFIG_FILE" << 'EOF'
-# Imperial Chapter Configuration File
-# Modify these values to customize your Chapter
-
-IMPERIAL_CHAPTER="ULTRAMARINES"
-COMPANY="2nd Company" 
-SQUAD="Tactical Squad Titus"
-BATTLE_HONORS=("Hive Fleet Behemoth" "Siege of Macragge" "Defence of Macragge")
-
-# Available Chapters:
-# - ULTRAMARINES (default blue/gold)
-# - BLOOD_ANGELS (red/gold)
-# - DARK_ANGELS (dark green/bone)
-# - SPACE_WOLVES (grey/orange)
-# - IMPERIAL_FISTS (yellow/black)
-# 
-# You can add custom chapters by modifying the case statement in .zshrc
-EOF
-        echo -e "${GREEN_PHOSPHOR}Chapter configuration file created at: $IMPERIAL_CONFIG_FILE${RESET}"
-        echo -e "${AMBER_ALERT}Edit with: chapter-config${RESET}"
-    fi
-}
-
-# Créer le fichier de config au premier lancement
-create_chapter_config
+# Chapter-config bootstrap is now handled inline near the top of this file,
+# before $IMPERIAL_CONFIG_FILE is sourced, so first-launch users get their
+# customised settings immediately rather than after a second shell.

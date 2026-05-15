@@ -105,6 +105,22 @@ EOF
 fi
 source "$IMPERIAL_CONFIG_FILE"
 
+# Validate the chapter token against the known list. If a user typo'd their
+# config (or set IMPERIAL_CHAPTER from the environment), warn loudly and
+# normalize so the colors `case` below hits ULTRAMARINES instead of silently
+# falling through to its catch-all.
+case "$IMPERIAL_CHAPTER" in
+    ULTRAMARINES|BLOOD_ANGELS|DARK_ANGELS|SPACE_WOLVES|IMPERIAL_FISTS) ;;
+    *)
+        # Use stderr so non-interactive shells (CI, etc.) still see the warning.
+        printf >&2 '\033[38;2;251;192;45m⚠ Imperial Chapter "%s" not recognised — falling back to ULTRAMARINES.\033[0m\n' \
+            "$IMPERIAL_CHAPTER"
+        printf >&2 '  Valid values: ULTRAMARINES, BLOOD_ANGELS, DARK_ANGELS, SPACE_WOLVES, IMPERIAL_FISTS.\n'
+        printf >&2 '  Edit ~/.imperial_chapter_config or run: chapter-switch <NAME>\n'
+        IMPERIAL_CHAPTER="ULTRAMARINES"
+        ;;
+esac
+
 # Imperial Chapter Color System
 case $IMPERIAL_CHAPTER in
     "BLOOD_ANGELS")
@@ -690,6 +706,57 @@ function chapter-oath() {
     echo -e "${CHAPTER_COLOR}Battle Cry: ${BATTLE_CRY}${RESET}"
 }
 
+# Switch the active chapter live by rewriting ~/.imperial_chapter_config.
+# Usage: chapter-switch BLOOD_ANGELS
+# Without args: lists valid chapters and the current one.
+function chapter-switch() {
+    local valid="ULTRAMARINES BLOOD_ANGELS DARK_ANGELS SPACE_WOLVES IMPERIAL_FISTS"
+    if [[ $# -eq 0 ]]; then
+        echo -e "${GOLD_IMPERIAL}Usage:${RESET} chapter-switch <CHAPTER>"
+        echo -e "${GOLD_IMPERIAL}Available chapters:${RESET}"
+        local c
+        for c in $valid; do
+            if [[ "$c" == "$IMPERIAL_CHAPTER" ]]; then
+                echo -e "  ${PRIMARY_COLOR}● $c${RESET}  ${GREEN_PHOSPHOR}(current)${RESET}"
+            else
+                echo -e "  ${WHITE_TEXT}○ $c${RESET}"
+            fi
+        done
+        return 0
+    fi
+
+    local target="$1"
+    case " $valid " in
+        *" $target "*) ;;
+        *)
+            echo -e "${RED_WARNING}✗ Unknown chapter: '$target'${RESET}" >&2
+            echo -e "  Valid: $valid" >&2
+            return 1
+            ;;
+    esac
+
+    if [[ ! -f "$IMPERIAL_CONFIG_FILE" ]]; then
+        echo -e "${RED_WARNING}✗ Config file missing: $IMPERIAL_CONFIG_FILE${RESET}" >&2
+        return 1
+    fi
+
+    # In-place rewrite of the IMPERIAL_CHAPTER= line. Use a tmp file rather than
+    # sed -i for portability (BSD sed needs sed -i '' but GNU rejects the '').
+    local tmp
+    tmp=$(mktemp "${IMPERIAL_CONFIG_FILE}.XXXXXX") || return 1
+    awk -v new="$target" '
+        /^IMPERIAL_CHAPTER=/ { print "IMPERIAL_CHAPTER=\"" new "\""; next }
+        { print }
+    ' "$IMPERIAL_CONFIG_FILE" > "$tmp" && mv -- "$tmp" "$IMPERIAL_CONFIG_FILE" || {
+        rm -f -- "$tmp"
+        echo -e "${RED_WARNING}✗ Failed to write config${RESET}" >&2
+        return 1
+    }
+
+    echo -e "${GREEN_PHOSPHOR}☩ Chapter changed to ${PRIMARY_COLOR}$target${RESET}"
+    echo -e "${AMBER_ALERT}Run 'reload-config' or open a new shell to apply colours and motto.${RESET}"
+}
+
 function imperial-status() {
     local up
     if command -v uptime >/dev/null 2>&1; then
@@ -709,6 +776,121 @@ function imperial-status() {
     echo -e "${GREEN_PHOSPHOR}║ Load:${load}${RESET}"
     echo -e "${GREEN_PHOSPHOR}║ Date: $(imperial_date)${RESET}"
     echo -e "${GREEN_PHOSPHOR}╚═══════════════════════════════╝${RESET}"
+}
+
+# Health check — verify dependencies, terminal capability, and config sanity.
+# Output: one line per check, green ✓ for pass, red ✗ for fail, amber ⚠ for warn.
+function imperial-doctor() {
+    local pass=0 fail=0 warn=0
+    local ok="${GREEN_PHOSPHOR}✓${RESET}"
+    local bad="${RED_WARNING}✗${RESET}"
+    local warning="${AMBER_ALERT}⚠${RESET}"
+
+    _doctor_check() {
+        local label="$1" status="$2" detail="${3:-}"
+        case "$status" in
+            ok)   pass=$((pass+1)); printf "  %b %-32s %s\n" "$ok"      "$label" "$detail" ;;
+            fail) fail=$((fail+1)); printf "  %b %-32s %s\n" "$bad"     "$label" "$detail" ;;
+            warn) warn=$((warn+1)); printf "  %b %-32s %s\n" "$warning" "$label" "$detail" ;;
+        esac
+    }
+
+    echo -e "${GOLD_IMPERIAL}╔═══ IMPERIAL DOCTOR — DIAGNOSTIC PROTOCOL ═══╗${RESET}"
+    echo ""
+
+    # --- shell ---
+    echo -e "${GOLD_IMPERIAL}Shell${RESET}"
+    if [[ -n "$ZSH_VERSION" ]]; then
+        _doctor_check "zsh detected"      ok   "v$ZSH_VERSION"
+    elif [[ -n "$BASH_VERSION" ]]; then
+        _doctor_check "bash detected"     warn "v$BASH_VERSION (zsh recommended for full prompt)"
+    else
+        _doctor_check "shell detected"    fail "unknown shell — prompt features will be limited"
+    fi
+    echo ""
+
+    # --- terminal capability ---
+    echo -e "${GOLD_IMPERIAL}Terminal capability${RESET}"
+    if [[ "$COLORTERM" == "truecolor" || "$COLORTERM" == "24bit" ]]; then
+        _doctor_check "24-bit color support" ok "\$COLORTERM=$COLORTERM"
+    else
+        _doctor_check "24-bit color support" warn "\$COLORTERM='${COLORTERM:-unset}' — chapter colors may be approximated"
+    fi
+    case "$TERM" in
+        *256color*|*-direct|xterm*|screen*|tmux*) _doctor_check "TERM supports 256+ colors" ok "$TERM" ;;
+        *)                                        _doctor_check "TERM supports 256+ colors" warn "\$TERM='${TERM:-unset}'" ;;
+    esac
+    local cols=${COLUMNS:-0}
+    [[ "$cols" -eq 0 ]] && cols=$(tput cols 2>/dev/null || echo 0)
+    if (( cols >= 88 )); then
+        _doctor_check "Terminal width ≥ 88 cols" ok "$cols cols"
+    else
+        _doctor_check "Terminal width ≥ 88 cols" warn "$cols cols — banner will wrap"
+    fi
+    echo ""
+
+    # --- binaries ---
+    echo -e "${GOLD_IMPERIAL}Binaries${RESET}"
+    local b
+    for b in curl htop nmap ss pgrep awk; do
+        if command -v "$b" >/dev/null 2>&1; then
+            _doctor_check "$b" ok "$(command -v "$b")"
+        else
+            _doctor_check "$b" fail "not in PATH"
+        fi
+    done
+    # apt is Linux-only; soft check
+    if command -v apt >/dev/null 2>&1; then
+        _doctor_check "apt (Linux package mgr)" ok ""
+    else
+        _doctor_check "apt (Linux package mgr)" warn "not found — purify-system/cleanse-heresy etc. won't work"
+    fi
+    echo ""
+
+    # --- Oh My Zsh plugins (zsh only) ---
+    if [[ -n "$ZSH_VERSION" ]]; then
+        echo -e "${GOLD_IMPERIAL}Oh My Zsh plugins${RESET}"
+        local omz_base="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+        local p
+        for p in zsh-autosuggestions zsh-syntax-highlighting; do
+            if [[ -d "$omz_base/plugins/$p" ]]; then
+                _doctor_check "$p" ok "installed"
+            else
+                _doctor_check "$p" warn "not at $omz_base/plugins/$p"
+            fi
+        done
+        echo ""
+    fi
+
+    # --- config ---
+    echo -e "${GOLD_IMPERIAL}Configuration${RESET}"
+    if [[ -f "$IMPERIAL_CONFIG_FILE" ]]; then
+        _doctor_check "Chapter config exists" ok "$IMPERIAL_CONFIG_FILE"
+    else
+        _doctor_check "Chapter config exists" fail "$IMPERIAL_CONFIG_FILE missing"
+    fi
+    case "$IMPERIAL_CHAPTER" in
+        ULTRAMARINES|BLOOD_ANGELS|DARK_ANGELS|SPACE_WOLVES|IMPERIAL_FISTS)
+            _doctor_check "Chapter token valid"  ok "$IMPERIAL_CHAPTER → $(imperial_chapter_display)" ;;
+        *)
+            _doctor_check "Chapter token valid"  fail "'$IMPERIAL_CHAPTER' unknown" ;;
+    esac
+    echo ""
+
+    # --- environment flags (informational) ---
+    echo -e "${GOLD_IMPERIAL}Environment flags${RESET}"
+    [[ "$IMPERIAL_QUIET"      == "1" ]] && _doctor_check "IMPERIAL_QUIET"      ok "set — banner skipped"     || _doctor_check "IMPERIAL_QUIET"      ok "unset — banner shown"
+    [[ "$IMPERIAL_AUTHORIZED" == "1" ]] && _doctor_check "IMPERIAL_AUTHORIZED" warn "set — nmap aliases unlocked" || _doctor_check "IMPERIAL_AUTHORIZED" ok "unset — nmap blocked"
+    echo ""
+
+    # --- summary ---
+    echo -e "${GOLD_IMPERIAL}╔═══ SUMMARY ════════════════════════════════╗${RESET}"
+    printf "${GOLD_IMPERIAL}║${RESET}  %b pass: %2d   %b warn: %2d   %b fail: %2d   ${GOLD_IMPERIAL}║${RESET}\n" \
+        "$ok" "$pass" "$warning" "$warn" "$bad" "$fail"
+    echo -e "${GOLD_IMPERIAL}╚════════════════════════════════════════════╝${RESET}"
+
+    unset -f _doctor_check
+    return $(( fail > 0 ? 1 : 0 ))
 }
 
 # Fonction d'aide impériale — codex complet des commandes
@@ -731,6 +913,8 @@ function help-imperial() {
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "emperor-blessing"   "Bénédiction impériale complète"
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "chapter-oath"       "Serment + cri de guerre du chapitre"
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "imperial-status"    "Rapport détaillé (rang, chapitre, etc)"
+    printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "imperial-doctor"    "Diagnostic deps + terminal + config"
+    printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "chapter-switch"     "Changer de chapitre en direct"
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "imperial_date"      "Date impériale (M42.jjj.HHMM)"
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "imperial_time"      "Heure impériale"
     printf "${GOLD_IMPERIAL}║${WHITE_TEXT} %-18s ${GREEN_PHOSPHOR}%-43s${GOLD_IMPERIAL}║${RESET}\n" "imperial_rank"      "Rang dérivé de l'uptime"
@@ -828,7 +1012,8 @@ function help-imperial() {
     echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} purify-system && cleanse-heresy        ${WHITE_TEXT}# rituel quotidien    ${GOLD_IMPERIAL}║${RESET}"
     echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} IMPERIAL_AUTHORIZED=1 recon-scan 10/24 ${WHITE_TEXT}# scan autorisé      ${GOLD_IMPERIAL}║${RESET}"
     echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} IMPERIAL_QUIET=1 zsh                   ${WHITE_TEXT}# shell sans banner  ${GOLD_IMPERIAL}║${RESET}"
-    echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} chapter-config                         ${WHITE_TEXT}# changer de chapter ${GOLD_IMPERIAL}║${RESET}"
+    echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} chapter-switch BLOOD_ANGELS            ${WHITE_TEXT}# changer de chapter ${GOLD_IMPERIAL}║${RESET}"
+    echo -e "${GOLD_IMPERIAL}║${GREEN_PHOSPHOR} imperial-doctor                        ${WHITE_TEXT}# vérifier l'install ${GOLD_IMPERIAL}║${RESET}"
     echo -e "${GOLD_IMPERIAL}╚════════════════════════════════════════════════════════════════╝${RESET}"
     echo ""
 

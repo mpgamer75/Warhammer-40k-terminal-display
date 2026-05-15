@@ -2,6 +2,8 @@
 
 <div align="center">
   <img src="warhammer_image_1.jpg" alt="Imperial Terminal Logo" width="300">
+
+  [![shellcheck](https://github.com/mpgamer75/Warhammer-40k-terminal-display/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/mpgamer75/Warhammer-40k-terminal-display/actions/workflows/shellcheck.yml)
 </div>
 
 ---
@@ -20,16 +22,40 @@ Transform your Linux terminal into an **Imperial Command Terminal** themed aroun
 
 ## Installation
 
-```bash
-# 1. Back up the existing config
-cp ~/.zshrc ~/.zshrc.backup
+### Option 1 — Installer (recommended)
 
-# 2. Install the imperial configuration
+```bash
+git clone https://github.com/mpgamer75/Warhammer-40k-terminal-display.git
+cd Warhammer-40k-terminal-display
+./install.sh
+```
+
+The installer:
+- backs up `~/.zshrc` to `~/.zshrc.backup-<timestamp>`
+- offers **symlink** (follows `git pull`) or **copy** (pins the version)
+- prompts for your chapter interactively
+- detects missing Oh My Zsh plugins and prints the clone command
+
+Flags:
+```bash
+./install.sh --symlink           # direct symlink, skip mode prompt
+./install.sh --copy              # copy mode
+./install.sh --shell bash        # target ~/.bashrc instead of ~/.zshrc
+./install.sh --quiet --copy      # non-interactive (CI / Ansible)
+./install.sh --uninstall         # restore most recent backup
+```
+
+### Option 2 — Manual
+
+```bash
+cp ~/.zshrc ~/.zshrc.backup
 cp warhammer_file.sh ~/.zshrc
 source ~/.zshrc
 ```
 
 On first launch, `~/.imperial_chapter_config` is created automatically (and read **before** the banner renders, so your customized chapter shows up from the first shell).
+
+> **First-run tip:** run `imperial-doctor` to verify dependencies, terminal capabilities, and config in one command.
 
 ### Dependencies
 
@@ -57,12 +83,20 @@ sudo apt install cmatrix hollywood
 | **SPACE_WOLVES** | Grey / Orange | 🐺 | "FOR RUSS AND THE ALLFATHER!" |
 | **IMPERIAL_FISTS** | Yellow / Black | ✊ | "PRIMARCH-PROGENITOR, TO YOUR GLORY!" |
 
-To switch chapter:
+Two ways to switch chapter:
+
 ```bash
+# Short form (v3.0+): dedicated command that validates the token and rewrites config
+chapter-switch BLOOD_ANGELS
+reload-config
+
+# Manual
 chapter-config         # opens ~/.imperial_chapter_config in nano
 # change IMPERIAL_CHAPTER="BLOOD_ANGELS", then:
 reload-config          # re-sources without the banner
 ```
+
+If `IMPERIAL_CHAPTER` is unknown (typo, legacy token), a warning is printed at startup and the terminal falls back to ULTRAMARINES.
 
 ## Imperial date
 
@@ -120,6 +154,8 @@ The initial `clear` only runs at the outermost shell level (`$SHLVL ≤ 1`), so 
 | `emperor-blessing` | Imperial benediction (text) |
 | `chapter-oath` | Motto + battle cry of the current chapter (dynamic border) |
 | `imperial-status` | Report: rank, chapter, company, squad, battle honors, uptime, load, date |
+| `imperial-doctor` | Diagnostic: dependencies, terminal capability, config sanity |
+| `chapter-switch <NAME>` | Change active chapter (validates + rewrites `~/.imperial_chapter_config`) |
 | `help-imperial` | Full command codex |
 | `imperial_date` | Imperial date `M42.NNN.DDD.HHMM` |
 | `imperial_time` | Imperial time |
@@ -328,6 +364,21 @@ cp ~/.zshrc.backup ~/.zshrc && exec zsh
 
 ## What's new
 
+### v3.0 — Doctor Edition
+
+**New commands:**
+- `imperial-doctor` — full health check: shell version, 24-bit / 256-color support, terminal width, binaries (`curl`, `htop`, `nmap`, `ss`, `pgrep`, `awk`, `apt`), Oh My Zsh plugins, config file presence, chapter token validity, env var state. Output is `✓ / ⚠ / ✗` with a summary.
+- `chapter-switch <NAME>` — one-command chapter swap: validates the token, rewrites `~/.imperial_chapter_config` via `awk`, asks for a `reload-config`. With no argument: lists chapters and highlights the current one.
+
+**Tooling:**
+- `install.sh` — automated bootstrap. Backs up `~/.zshrc` to `.backup-<timestamp>`, choice of symlink/copy, chapter prompt, missing-plugin detection. `--quiet` mode for CI/Ansible. `--uninstall` to restore the latest backup.
+- `.github/workflows/shellcheck.yml` — CI that lints `install.sh` (and any future portable bash scripts) on push/PR. `warhammer_file.sh` is excluded because shellcheck cannot accurately analyse zsh syntax (`PROMPT %F{}`, `setopt`, etc.).
+
+**Robustness:**
+- `IMPERIAL_CHAPTER` token validated at boot: an unknown name prints a warning to stderr and falls back to ULTRAMARINES, instead of silently hitting the `*)` catch-all.
+
+**No breaking changes** vs v2.1 — the version bumps to 3.0 because the user-facing surface grows (`imperial-doctor`, `chapter-switch`, `install.sh`) and the safety guards from v2.1 are now documented as a stable contract.
+
 ### v2.1 — Codex Update
 
 **Fixes:**
@@ -367,10 +418,12 @@ cp ~/.zshrc.backup ~/.zshrc && exec zsh
 
 ## Project files
 
-- `warhammer_file.sh` — full configuration (single file)
+- `warhammer_file.sh` — full configuration (single file, ~890 lines)
+- `install.sh` — bootstrap (backup + install + chapter prompt)
 - `README.md` — French documentation (primary)
 - `README_EN.md` — English documentation (mirror)
 - `CLAUDE.md` — guide for Claude Code agents (architecture, conventions)
+- `.github/workflows/shellcheck.yml` — shellcheck CI for portable scripts
 - `LICENSE` — MIT
 - `warhammer_image_1.jpg` — logo
 

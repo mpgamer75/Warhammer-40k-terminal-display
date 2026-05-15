@@ -1,0 +1,37 @@
+name: shellcheck
+
+# Lints portable bash scripts in the repo.
+#
+# `warhammer_file.sh` is intentionally excluded: it is a zsh `~/.zshrc` and uses
+# zsh-only constructs (PROMPT %F{} escapes, setopt, TRAPALRM, RPROMPT, ZLE).
+# Shellcheck only understands sh/bash/dash/ksh, so running it on a zsh rc file
+# produces dozens of unfixable false positives. The script is validated with
+# `zsh -n` and `bash -n` locally instead.
+
+on:
+  push:
+    paths:
+      - '**.sh'
+      - '.github/workflows/shellcheck.yml'
+  pull_request:
+    paths:
+      - '**.sh'
+      - '.github/workflows/shellcheck.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: shellcheck portable scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          severity: warning
+          scandir: '.'
+          # Do not extend to warhammer_file.sh — see top comment.
+          ignore_paths: 'warhammer_file.sh'

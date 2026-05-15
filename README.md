@@ -2,6 +2,8 @@
 
 <div align="center">
   <img src="warhammer_image_1.jpg" alt="Imperial Terminal Logo" width="300">
+
+  [![shellcheck](https://github.com/mpgamer75/Warhammer-40k-terminal-display/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/mpgamer75/Warhammer-40k-terminal-display/actions/workflows/shellcheck.yml)
 </div>
 
 ---
@@ -20,16 +22,40 @@ Transformez votre terminal Linux en **Terminal de Commandement Impérial** thém
 
 ## Installation
 
-```bash
-# 1. Sauvegarde de l'existant
-cp ~/.zshrc ~/.zshrc.backup
+### Option 1 — Installeur (recommandé)
 
-# 2. Installer la configuration impériale
+```bash
+git clone https://github.com/mpgamer75/Warhammer-40k-terminal-display.git
+cd Warhammer-40k-terminal-display
+./install.sh
+```
+
+L'installeur :
+- sauvegarde `~/.zshrc` en `~/.zshrc.backup-<timestamp>`
+- propose **symlink** (suit les `git pull`) ou **copie** (fige la version)
+- demande votre chapitre interactivement
+- détecte les plugins Oh My Zsh manquants et donne la commande de clone
+
+Options :
+```bash
+./install.sh --symlink           # mode symlink direct, pas de prompt
+./install.sh --copy              # mode copie
+./install.sh --shell bash        # cibler ~/.bashrc au lieu de ~/.zshrc
+./install.sh --quiet --copy      # non-interactif (CI / Ansible)
+./install.sh --uninstall         # restaure la sauvegarde la plus récente
+```
+
+### Option 2 — Manuelle
+
+```bash
+cp ~/.zshrc ~/.zshrc.backup
 cp warhammer_file.sh ~/.zshrc
 source ~/.zshrc
 ```
 
 À la première session, le fichier `~/.imperial_chapter_config` est créé automatiquement (et lu **avant** l'affichage de la bannière, donc votre chapitre personnalisé apparaît dès le premier shell).
+
+> **Conseil de premier usage :** lancez `imperial-doctor` pour vérifier dépendances, capacités du terminal et config en une commande.
 
 ### Dépendances
 
@@ -57,12 +83,20 @@ La valeur de `$IMPERIAL_CHAPTER` détermine couleurs, symbole, cri de guerre et 
 | **SPACE_WOLVES** | Gris / Orange | 🐺 | "FOR RUSS AND THE ALLFATHER!" |
 | **IMPERIAL_FISTS** | Jaune / Noir | ✊ | "PRIMARCH-PROGENITOR, TO YOUR GLORY!" |
 
-Pour changer de chapitre :
+Pour changer de chapitre, deux options :
+
 ```bash
+# Méthode courte (v3.0+) : commande dédiée, valide le token, réécrit la config
+chapter-switch BLOOD_ANGELS
+reload-config
+
+# Méthode manuelle
 chapter-config         # ouvre ~/.imperial_chapter_config dans nano
 # modifier IMPERIAL_CHAPTER="BLOOD_ANGELS" puis :
 reload-config          # re-source sans la bannière
 ```
+
+Si `IMPERIAL_CHAPTER` est inconnue (typo, ancien token), un avertissement est affiché au démarrage et le terminal retombe sur ULTRAMARINES.
 
 ## Date impériale
 
@@ -120,6 +154,8 @@ Le `clear` initial ne s'exécute qu'au niveau de shell le plus haut (`$SHLVL ≤
 | `emperor-blessing` | Bénédiction impériale (texte) |
 | `chapter-oath` | Motto + cri de guerre du chapitre courant (bordure dynamique) |
 | `imperial-status` | Rapport : rang, chapitre, compagnie, escouade, battle honors, uptime, load, date |
+| `imperial-doctor` | Diagnostic : dépendances, capacités du terminal, validité de la config |
+| `chapter-switch <NAME>` | Change le chapitre actif (valide + réécrit `~/.imperial_chapter_config`) |
 | `help-imperial` | Codex complet des commandes |
 | `imperial_date` | Date impériale `M42.NNN.DDD.HHMM` |
 | `imperial_time` | Heure impériale |
@@ -328,6 +364,21 @@ cp ~/.zshrc.backup ~/.zshrc && exec zsh
 
 ## Quoi de neuf
 
+### v3.0 — Édition Doctor
+
+**Nouvelles commandes :**
+- `imperial-doctor` — diagnostic complet : version du shell, support 24-bit / 256 couleurs, largeur du terminal, binaires (`curl`, `htop`, `nmap`, `ss`, `pgrep`, `awk`, `apt`), plugins Oh My Zsh, fichier de config, validité du chapitre, état des variables d'env. Sortie `✓ / ⚠ / ✗` avec résumé.
+- `chapter-switch <NAME>` — bascule de chapitre en une commande : valide le token, réécrit `~/.imperial_chapter_config` via `awk`, demande un `reload-config`. Sans argument : liste les chapitres et marque l'actuel.
+
+**Outillage :**
+- `install.sh` — bootstrap automatisé. Sauvegarde de `~/.zshrc` en `.backup-<timestamp>`, choix symlink/copie, prompt de chapitre, détection des plugins OMZ manquants. Mode `--quiet` pour CI/Ansible. Mode `--uninstall` pour restaurer le backup le plus récent.
+- `.github/workflows/shellcheck.yml` — CI qui lint `install.sh` (et tout futur script bash portable) sur push/PR. `warhammer_file.sh` est exclu car shellcheck ne comprend pas la syntaxe zsh (`PROMPT %F{}`, `setopt`, etc.).
+
+**Robustesse :**
+- Validation du token `IMPERIAL_CHAPTER` au boot : un nom inconnu affiche un avertissement sur stderr et retombe sur ULTRAMARINES au lieu de tomber silencieusement dans le `*)` du `case`.
+
+**Pas de changement breaking** vs v2.1 — la version monte à v3.0 parce que la surface des commandes utilisateur s'élargit (`imperial-doctor`, `chapter-switch`, `install.sh`) et que les garde-fous sécurité de v2.1 sont désormais documentés comme contrat stable.
+
 ### v2.1 — Édition Codex Améliorée
 
 **Corrections :**
@@ -367,10 +418,12 @@ cp ~/.zshrc.backup ~/.zshrc && exec zsh
 
 ## Fichiers du projet
 
-- `warhammer_file.sh` — configuration complète (un seul fichier)
+- `warhammer_file.sh` — configuration complète (un seul fichier, ~890 lignes)
+- `install.sh` — bootstrap (backup + install + chapter prompt)
 - `README.md` — documentation française (primaire)
 - `README_EN.md` — documentation anglaise (mirroir)
 - `CLAUDE.md` — guide pour les agents Claude Code (architecture, conventions)
+- `.github/workflows/shellcheck.yml` — CI shellcheck sur scripts portables
 - `LICENSE` — licence MIT
 - `warhammer_image_1.jpg` — logo
 

@@ -22,7 +22,51 @@ Transform your Linux terminal into an **Imperial Command Terminal** themed aroun
 
 ## Installation
 
-### Option 1 — Installer (recommended)
+### Option 1 — Quick install via `curl` (recommended)
+
+> ⚠ **Inspect before running downloaded code.** The "inspect-first" approach below is the safe pattern; the one-liner `curl … | bash` is convenient but assumes trust in HTTPS + the GitHub repo at that moment. For an integrity guarantee, see [Pinning a version](#pinning-a-version).
+
+**Method 1a — Inspect-first (safe)**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mpgamer75/Warhammer-40k-terminal-display/main/install.sh \
+    -o /tmp/imperial-install.sh
+less /tmp/imperial-install.sh        # read the script before running
+bash /tmp/imperial-install.sh        # add flags as needed (see below)
+```
+
+**Method 1b — One-liner**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mpgamer75/Warhammer-40k-terminal-display/main/install.sh | bash
+```
+
+The installer detects it's running without the cloned repo and downloads `warhammer_file.sh` from the same ref (`main` by default) to `~/.local/share/imperial-terminal/warhammer_file.sh`. It backs up `~/.zshrc` to `~/.zshrc.backup-<timestamp>` before any write. Basic integrity checks (minimum size + presence of the `IMPERIAL TERMINAL CONFIGURATION` marker) run before install.
+
+**Quick uninstall via `curl`**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mpgamer75/Warhammer-40k-terminal-display/main/install.sh \
+    | bash -s -- --uninstall
+```
+
+Restores the most recent `~/.zshrc.backup-<timestamp>`. If no backup exists (never installed via this script), the script exits cleanly without touching the file. The uninstall path does not need `warhammer_file.sh`, so it works through curl-pipe directly.
+
+**Pinning a version**
+
+To pin a known-good version (recommended for production), export `IMPERIAL_INSTALL_REF` before piping:
+
+```bash
+# Release tag
+export IMPERIAL_INSTALL_REF=v3.0
+curl -fsSL https://raw.githubusercontent.com/mpgamer75/Warhammer-40k-terminal-display/$IMPERIAL_INSTALL_REF/install.sh | bash
+
+# Commit SHA (immutable on GitHub — the strongest integrity guarantee without GPG)
+export IMPERIAL_INSTALL_REF=d51c888
+curl -fsSL https://raw.githubusercontent.com/mpgamer75/Warhammer-40k-terminal-display/$IMPERIAL_INSTALL_REF/install.sh | bash
+```
+
+### Option 2 — Clone + installer (dev / contributors)
 
 ```bash
 git clone https://github.com/mpgamer75/Warhammer-40k-terminal-display.git
@@ -36,7 +80,7 @@ The installer:
 - prompts for your chapter interactively
 - detects missing Oh My Zsh plugins and prints the clone command
 
-Flags:
+Available flags:
 ```bash
 ./install.sh --symlink           # direct symlink, skip mode prompt
 ./install.sh --copy              # copy mode
@@ -45,13 +89,15 @@ Flags:
 ./install.sh --uninstall         # restore most recent backup
 ```
 
-### Option 2 — Manual
+### Option 3 — Manual
 
 ```bash
 cp ~/.zshrc ~/.zshrc.backup
 cp warhammer_file.sh ~/.zshrc
 source ~/.zshrc
 ```
+
+---
 
 On first launch, `~/.imperial_chapter_config` is created automatically (and read **before** the banner renders, so your customized chapter shows up from the first shell).
 

@@ -61,9 +61,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ---------- locate the source file ----------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_FILE="$SCRIPT_DIR/warhammer_file.sh"
-[[ -f "$SOURCE_FILE" ]] || die "warhammer_file.sh not found in $SCRIPT_DIR"
+# When run from a git checkout (./install.sh), BASH_SOURCE[0] points at the
+# script and warhammer_file.sh sits next to it. When piped via curl|bash,
+# BASH_SOURCE[0] is empty/`stdin`, so we fall back to a remote fetch.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")"
+SOURCE_FILE="${SCRIPT_DIR:+$SCRIPT_DIR/warhammer_file.sh}"
+
+# Remote install constants — pinning supported via $IMPERIAL_INSTALL_REF
+# (tag, branch, or commit SHA). Defaults to main.
+REMOTE_REPO="mpgamer75/Warhammer-40k-terminal-display"
+REMOTE_REF="${IMPERIAL_INSTALL_REF:-main}"
+REMOTE_URL="https://raw.githubusercontent.com/${REMOTE_REPO}/${REMOTE_REF}/warhammer_file.sh"
 
 # ---------- pick target rc file ----------
 if [[ -z "$SHELL_TARGET" ]]; then
@@ -80,14 +88,51 @@ case "$SHELL_TARGET" in
 esac
 
 # ---------- uninstall path ----------
+# Uninstall never needs warhammer_file.sh, so it runs before the source-file
+# check. Safe to invoke via `curl ... | bash -s -- --uninstall`.
 if [[ "$ACTION" == "uninstall" ]]; then
     # Find most recent backup
     backup=$(ls -t "$RC_FILE.backup-"* 2>/dev/null | head -n1 || true)
-    [[ -n "$backup" ]] || die "No backup found matching $RC_FILE.backup-*"
+    [[ -n "$backup" ]] || die "No backup found matching $RC_FILE.backup-* — was this shell ever installed via install.sh?"
     say "Restoring $RC_FILE from $backup"
     cp -- "$backup" "$RC_FILE"
     say "Done. Open a new shell to use the restored config."
     exit 0
+fi
+
+# ---------- resolve SOURCE_FILE (local or remote fetch) ----------
+# Persist remote downloads to a stable location so symlink-mode survives, and
+# so a re-run in --symlink mode points at the same path (and just refreshes
+# the file in place).
+PERSIST_DIR="$HOME/.local/share/imperial-terminal"
+
+if [[ -z "$SOURCE_FILE" || ! -f "$SOURCE_FILE" ]]; then
+    command -v curl >/dev/null 2>&1 || die "curl is required for remote install (or run from a git checkout)"
+    say "Local warhammer_file.sh not found — fetching from GitHub"
+    say "  Ref: ${REMOTE_REF}"
+    say "  URL: ${REMOTE_URL}"
+    mkdir -p "$PERSIST_DIR"
+    SOURCE_FILE="$PERSIST_DIR/warhammer_file.sh"
+    # Download to a sibling .tmp and rename atomically so we never overwrite
+    # a working SOURCE_FILE with a half-downloaded one.
+    tmp_dl="${SOURCE_FILE}.tmp"
+    if ! curl --fail --silent --show-error --location "$REMOTE_URL" -o "$tmp_dl"; then
+        rm -f -- "$tmp_dl"
+        die "Failed to download from $REMOTE_URL"
+    fi
+    # Basic integrity checks (HTTPS is the trust boundary — these guard against
+    # silent corruption and against accidentally pointing at the wrong file).
+    bytes=$(wc -c < "$tmp_dl")
+    if (( bytes < 10000 )); then
+        rm -f -- "$tmp_dl"
+        die "Downloaded file looks too small ($bytes bytes) — refusing to install"
+    fi
+    if ! grep -q 'IMPERIAL TERMINAL CONFIGURATION' "$tmp_dl"; then
+        rm -f -- "$tmp_dl"
+        die "Downloaded file does not look like warhammer_file.sh — refusing to install"
+    fi
+    mv -- "$tmp_dl" "$SOURCE_FILE"
+    say "Fetched OK (${bytes} bytes) → $SOURCE_FILE"
 fi
 
 # ---------- install path ----------

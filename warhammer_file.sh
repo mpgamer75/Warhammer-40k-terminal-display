@@ -190,8 +190,11 @@ RESET="\033[0m"
 # Offset chosen so the current real year lands in M42 (lore-consistent with the
 # "current" 40K era). 2026 → 42026 → M42.026.
 function imperial_date() {
-    local year=$(date +%Y)
-    local imperial_year=$((year + 40000))
+    # SC2155: declare and assign separately so a failure in $(date) propagates
+    # via $? rather than being swallowed by the `local` builtin's own exit code.
+    local year imperial_year
+    year=$(date +%Y)
+    imperial_year=$((year + 40000))
     printf "M%02d.%03d.%s.%s\n" \
         "$((imperial_year / 1000))" \
         "$((imperial_year % 1000))" \
@@ -201,9 +204,10 @@ function imperial_date() {
 
 # Imperial Time Format
 function imperial_time() {
-    local hour=$(date +%H)
-    local minute=$(date +%M)
-    local second=$(date +%S)
+    local hour minute second
+    hour=$(date +%H)
+    minute=$(date +%M)
+    second=$(date +%S)
     echo "${hour}${minute}.${second}"
 }
 

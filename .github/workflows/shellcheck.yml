@@ -33,5 +33,8 @@ jobs:
         with:
           severity: warning
           scandir: '.'
+          # `ignore_paths` does prefix-matching against full paths (e.g.
+          # `./warhammer_file.sh`), so a bare filename never matches.
+          # `ignore_names` is the correct filter for excluding by filename.
           # Do not extend to warhammer_file.sh — see top comment.
-          ignore_paths: 'warhammer_file.sh'
+          ignore_names: 'warhammer_file.sh'

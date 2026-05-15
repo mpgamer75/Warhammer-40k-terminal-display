@@ -404,7 +404,12 @@ alias read-scroll='cat'
 alias inscribe='nano'
 alias duplicate='cp'
 alias relocate='mv'
-purge() {
+# A prior version of this file aliased `purge` to `rm -rf`. Re-sourcing into
+# a shell that still has that alias would make `purge() {` parse as
+# `'rm -rf'() {` and fail. Drop any stale alias first, then use the `function`
+# keyword (no alias expansion at parse time in zsh).
+unalias purge 2>/dev/null
+function purge {
     if (( $# == 0 )); then
         echo -e "${AMBER_ALERT}Usage: purge <target> [more targets...]${RESET}" >&2
         return 1
@@ -439,7 +444,11 @@ alias chapter-config='nano ~/.imperial_chapter_config'
 # === UTILITY ===
 alias c='clear'
 alias identity='whoami && id && groups'
-shutdown-now() {
+# Same precaution as `purge`: the previous version aliased `shutdown-now`;
+# drop the alias before defining the function and use the `function` keyword
+# so re-sourcing into an alias-bearing shell parses cleanly.
+unalias shutdown-now 2>/dev/null
+function shutdown-now {
     vox_message "INITIATING EMERGENCY SHUTDOWN PROTOCOL"
     printf "%s" "Confirm shutdown — type EMPEROR: "
     local confirm

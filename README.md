@@ -6,357 +6,394 @@
 
 ---
 
-## Overview
+## Vue d'ensemble
 
-Transform your Linux terminal into an **Imperial Command Terminal**.
+Transformez votre terminal Linux en **Terminal de Commandement Impérial** thématisé Warhammer 40K : prompt dynamique, bannière au démarrage, ~50 commandes en alias / fonction, et 5 chapitres jouables (Ultramarines, Blood Angels, Dark Angels, Space Wolves, Imperial Fists).
 
-## Compatibility
+> 🇬🇧 English documentation: [README_EN.md](README_EN.md)
 
-This configuration supports:
+## Compatibilité
 
-- **Zsh** (`.zshrc`) - Recommended for Space Marine Lieutenants
-- **Bash** (`.bashrc`) - Suitable for Imperial Guard officers
-- **Other POSIX shells** - With minor modifications
-
-## Features
-
-### Sacred Terminal Interface
-
-- **Dynamic Chapter system** - Choose your Space Marine Chapter with authentic colors
-- **Imperial dating system** - M41/M42 timeline with proper Imperial format
-- **Rank progression** - Advance from Battle-Brother to Chapter Master based on system usage
-- **Palette de couleurs améliorée** - Or impérial authentique, rouge cramoisi, et gris acier
-- **Real-time chronometer** - Imperial date and time display
-- **Contextual messages** - Different greetings based on time of day
-- **Animations interactives** - Barres de chargement, indicateurs de progrès, et effets dynamiques
-- **ASCII art amélioré** - Crâne impérial avec cadre parfaitement aligné
-
-### Combat-Ready Aliases
-
-#### System Purification Commands
-
-```bash
-purify-system        # System updates with Imperial ceremony and animations
-cleanse-heresy       # Remove heretical packages with blessing and visual effects
-install-sacred       # Install new software packages
-sacred-logs          # Monitor system logs with sacred protocols
-system-status        # Check service status
-monitor-machine      # System resource monitoring with machine spirit
-```
-
-#### Reconnaissance Operations
-
-```bash
-recon-scan           # Network discovery with warp storm checks
-full-augury          # Complete network analysis
-stealth-probe        # Stealthy reconnaissance operations
-deep-scan            # Vulnerability assessment with Imperial protocols
-active-channels      # Monitor listening ports
-external-position    # Check external IP coordinates
-```
-
-#### Data Management Protocols
-
-```bash
-list-data            # Enhanced directory listing with Imperial formatting
-inscribe             # Sacred text editor (nano)
-duplicate            # File duplication protocols
-relocate             # Data relocation operations
-purge                # Secure deletion with Imperial blessing
-compress/extract     # Archive operations with ritual
-```
-
-### Imperial Functions & Rituals
-
-Execute these sacred rituals:
-
-```bash
-praise-omnissiah     # Mechanicus blessing with system uptime
-binary-prayer        # Emperor's protection in sacred binary
-machine-blessing     # Complete machine spirit ritual with animated ceremony
-emperor-blessing     # Full Imperial benediction
-chapter-oath         # Recite your Chapter's sacred oath
-imperial-status      # Complete status report with Imperial formatting
-help-imperial        # Complete command reference with sacred knowledge
-```
-
-### Fonctionnalités Interactives
-
-Nouvelles fonctions dynamiques et interactives :
-
-- **imperial_loading** - Séquences de chargement animées avec indicateurs de progrès
-- **imperial_progress** - Barres de progression élégantes pour les opérations longues
-- **imperial_box** - Boîtes de messages stylisées avec bordures
-- **imperial_type** - Effet machine à écrire pour les messages importants
-
-### Chapter System
-
-Choose from authentic Space Marine Chapters:
-
-| Chapter | Colors | Symbol | Battle Cry |
-|---------|--------|--------|------------|
-| **Ultramarines** | Blue/Gold | ☩ | "Courage and Honour!" |
-| **Blood Angels** | Red/Gold | ⸸ | "For Sanguinius and the Emperor!" |
-| **Dark Angels** | Dark Green/Bone | ⚔ | "Repent! For tomorrow you die!" |
-| **Space Wolves** | Grey/Orange | 🐺 | "For Russ and the Allfather!" |
-| **Imperial Fists** | Yellow/Black | ✊ | "Primarch-Progenitor, to your glory!" |
-
-Each Chapter includes:
-
-- Authentic color schemes
-- Chapter-specific mottos and battle cries
-- Unique terminal aesthetics
-- Lore-accurate symbolism
+- **Zsh** (`.zshrc`) — recommandé, support complet (prompt, prompt droit dynamique, `setopt HIST_*`)
+- **Bash** (`.bashrc`) — fonctions et aliases marchent ; les blocs zsh-spécifiques (PROMPT, RPROMPT, TRAPALRM, setopt) sont gated derrière `[[ -n $ZSH_VERSION ]]`, donc bash reste propre (pas d'erreurs)
+- **Plateformes** : Linux principalement (utilise `/proc/uptime`, `apt`, `pgrep`, `ss`, `nmap`). Sur macOS/BSD la majorité des fonctions marche, mais les aliases qui appellent `apt` ou `uptime -p` échoueront.
 
 ## Installation
 
-### For Zsh Users (Recommended)
-
 ```bash
-# Backup your current configuration
+# 1. Sauvegarde de l'existant
 cp ~/.zshrc ~/.zshrc.backup
 
-# Replace with Imperial configuration
-cp imperial-zshrc ~/.zshrc
-
-# Reload your shell
+# 2. Installer la configuration impériale
+cp warhammer_file.sh ~/.zshrc
 source ~/.zshrc
 ```
 
-### For Bash Users
+À la première session, le fichier `~/.imperial_chapter_config` est créé automatiquement (et lu **avant** l'affichage de la bannière, donc votre chapitre personnalisé apparaît dès le premier shell).
+
+### Dépendances
 
 ```bash
-# Backup your current configuration
-cp ~/.bashrc ~/.bashrc.backup
+# Ubuntu / Debian
+sudo apt install curl htop nmap iproute2 procps
 
-# Replace with Imperial configuration
-cp imperial-zshrc ~/.bashrc
+# Plugins Oh My Zsh (chargés depuis plugins=(...))
+git clone https://github.com/zsh-users/zsh-autosuggestions     ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
-# Reload your shell
-source ~/.bashrc
+# Effets visuels optionnels
+sudo apt install cmatrix hollywood
 ```
 
-### Dependencies
+## Système de chapitre
 
-Install these sacred components:
+La valeur de `$IMPERIAL_CHAPTER` détermine couleurs, symbole, cri de guerre et motto :
+
+| Chapitre | Couleurs | Symbole | Cri de guerre |
+|---|---|:---:|---|
+| **ULTRAMARINES** *(défaut)* | Bleu / Or | ☩ | "COURAGE AND HONOUR!" |
+| **BLOOD_ANGELS** | Rouge sang / Or | ⸸ | "FOR SANGUINIUS AND THE EMPEROR!" |
+| **DARK_ANGELS** | Vert sombre / Bone | ⚔ | "REPENT! FOR TOMORROW YOU DIE!" |
+| **SPACE_WOLVES** | Gris / Orange | 🐺 | "FOR RUSS AND THE ALLFATHER!" |
+| **IMPERIAL_FISTS** | Jaune / Noir | ✊ | "PRIMARCH-PROGENITOR, TO YOUR GLORY!" |
+
+Pour changer de chapitre :
+```bash
+chapter-config         # ouvre ~/.imperial_chapter_config dans nano
+# modifier IMPERIAL_CHAPTER="BLOOD_ANGELS" puis :
+reload-config          # re-source sans la bannière
+```
+
+## Date impériale
+
+Format `M42.NNN.DDD.HHMM` :
+
+| Segment | Sens |
+|---|---|
+| `M42` | 42ᵉ millénaire (lore-courant du 40K, M42.026 ≈ 2026 AD) |
+| `NNN` | année dans le millénaire (3 chiffres) |
+| `DDD` | jour de l'année (Julien) |
+| `HHMM` | heure militaire |
+
+Exemple : `M42.026.135.1430` = an 026 du 42ᵉ millénaire, jour 135, 14h30.
+
+## Système de rang
+
+Le rang est dérivé de l'uptime de la machine (lu depuis `/proc/uptime`) :
+
+| Uptime | Rang |
+|---:|---|
+| 0–6 jours | BATTLE-BROTHER |
+| 7–29 j | VETERAN |
+| 30–99 j | SERGEANT |
+| 100–364 j | CAPTAIN |
+| 365+ j | CHAPTER-MASTER |
+
+## Bannière au démarrage
+
+Affichée **une fois par shell interactif**. Elle est sautée si :
+
+- `IMPERIAL_QUIET=1` est exporté (utile en CI / SSH non-interactif)
+- Le shell est non-interactif (scripts, `bash -c`, etc.)
+- Le fichier est re-source dans la même session (via `reload-config` par ex.)
+
+Le `clear` initial ne s'exécute qu'au niveau de shell le plus haut (`$SHLVL ≤ 1`), pour ne pas écraser le scrollback dans tmux / `:!sh` d'un éditeur.
+
+## Variables d'environnement
+
+| Variable | Effet |
+|---|---|
+| `IMPERIAL_QUIET=1` | Saute la bannière au démarrage |
+| `IMPERIAL_AUTHORIZED=1` | **Débloque les commandes nmap.** À utiliser uniquement sur des réseaux dont vous êtes propriétaire ou que vous êtes autorisé à scanner. |
+| `IMPERIAL_CHAPTER` | Token de chapitre. Normalement chargé depuis `~/.imperial_chapter_config`. |
+| `IMPERIAL_BANNER_SHOWN` | Interne. Set à `1` une fois la bannière affichée, empêche le re-jouer. |
+
+## Référence complète des commandes
+
+### Rituels & statut
+
+| Commande | Effet |
+|---|---|
+| `praise-omnissiah` | Bénédiction Mechanicus + uptime |
+| `binary-prayer` | « Emperor protects » en binaire |
+| `machine-blessing` | Rituel animé de bénédiction (~12s) |
+| `emperor-blessing` | Bénédiction impériale (texte) |
+| `chapter-oath` | Motto + cri de guerre du chapitre courant (bordure dynamique) |
+| `imperial-status` | Rapport : rang, chapitre, compagnie, escouade, battle honors, uptime, load, date |
+| `help-imperial` | Codex complet des commandes |
+| `imperial_date` | Date impériale `M42.NNN.DDD.HHMM` |
+| `imperial_time` | Heure impériale |
+| `imperial_rank` | Rang courant |
+
+### Purification système (Linux / apt)
+
+| Commande | Effet |
+|---|---|
+| `purify-system` | `apt update && apt upgrade` (avec rituel visuel) |
+| `cleanse-heresy` | `apt autoremove && apt autoclean` |
+| `install-sacred <paquet>` | `apt install` |
+| `search-archives <terme>` | `apt search` |
+| `sacred-logs` | `tail -f /var/log/syslog` |
+| `system-status <service>` | `systemctl status` |
+| `monitor-machine` | `htop` |
+| `scan-machine` | `ps aux` |
+| `storage-status` | `df -h` |
+
+### Reconnaissance ⚿ *requiert `IMPERIAL_AUTHORIZED=1`*
+
+| Commande | Effet |
+|---|---|
+| `recon-scan <range>` | `nmap -sn` (ping discovery) |
+| `full-augury <target>` | `nmap -sV -O -T4 --script=default` (services + OS) |
+| `stealth-probe <target>` | `nmap -sS -T2 -f` (SYN furtif fragmenté) |
+| `deep-scan <target>` | `nmap -sS -sU -T4 -A -v --script=vuln` (TCP+UDP + vulns) |
+| `active-channels` | `netstat -tulanp \| grep LISTEN` |
+| `external-position` | IP externe via ipinfo.io (⚠ requête vers tiers) |
+| `open-ports` | `ss -tuln` (ports locaux) |
+
+Sans `IMPERIAL_AUTHORIZED=1`, les 4 commandes nmap affichent un avertissement et refusent de s'exécuter. **Ces scans peuvent être illégaux** sur des réseaux dont vous n'êtes pas propriétaire ou autorisé à tester (CFAA, Computer Misuse Act, équivalents). Vous restez responsable de la légalité.
+
+### Gestion des données
+
+| Commande | Effet |
+|---|---|
+| `list-data` | `ls -alF` avec couleurs |
+| `brief-list` | `ls -CF` en colonnes |
+| `read-scroll <fichier>` | `cat` |
+| `inscribe <fichier>` | `nano` |
+| `duplicate src dest` | `cp` |
+| `relocate src dest` | `mv` |
+| `purge <cible…>` ⚠ | `rm -rf` avec **confirmation textuelle** : tape `EXTERMINATUS` |
+| `compress archive.tgz files` | `tar -czf` |
+| `extract archive.tgz` | `tar -xzf` |
+
+### Recherche & filtres
+
+| Commande | Effet |
+|---|---|
+| `filter-data <pattern>` | `grep --color` |
+| `search-pattern <pattern>` | `grep -r` (récursif) |
+| `count-lines <fichier>` | `wc -l` |
+| `sort-data` | `sort` |
+| `unique-only` | `uniq` |
+
+### Container / Docker
+
+| Commande | Effet |
+|---|---|
+| `dcbuild` | `docker compose build` |
+| `dcup` | `docker compose up` |
+| `dcdown` | `docker compose down` |
+| `dockps` | `docker ps` (format compact) |
+| `docksh <container> [shell]` | `docker exec -it <container> <shell>`. Tente `bash` par défaut, fallback `/bin/sh` (alpine et autres images minimales). |
+
+### Configuration
+
+| Commande | Effet |
+|---|---|
+| `terminal-config` | éditer `~/.zshrc` |
+| `chapter-config` | éditer `~/.imperial_chapter_config` |
+| `reload-config` | re-source `~/.zshrc` (bannière sautée car déjà affichée) |
+
+### Utilitaires & divers
+
+| Commande | Effet |
+|---|---|
+| `c` | `clear` |
+| `identity` | `whoami && id && groups` |
+| `shutdown-now` ⚠ | Arrêt système avec **confirmation** : tape `EMPEROR` |
+| `machine-spirit` | `cmatrix -s` (effet Matrix) |
+| `data-stream` | `hollywood` (faux flux à la Hollywood) |
+
+## Sécurité
+
+| Commande | Garde |
+|---|---|
+| `purge` | Demande la phrase exacte `EXTERMINATUS` avant d'exécuter `rm -rf`. Un tab-complete accidentel ne peut donc rien supprimer. |
+| `shutdown-now` | Demande la phrase exacte `EMPEROR` avant `sudo shutdown -h now`. |
+| `recon-scan`, `full-augury`, `stealth-probe`, `deep-scan` | Bloqués par défaut. Requièrent `IMPERIAL_AUTHORIZED=1`. Le bandeau d'avertissement explique pourquoi (CFAA / CMA). |
+| `external-position` | Fait une requête HTTPS sortante vers `ipinfo.io` — votre IP réelle est exposée à ce tiers. Préférez `ip addr` ou `hostname -I` si ce n'est pas souhaité. |
+
+## Performance
+
+- **Bannière de démarrage** : ~3s (animations `imperial_loading`). Skip via `IMPERIAL_QUIET=1` ou shell non-interactif.
+- **Prompt droit (zsh) avec date dynamique** : refresh toutes les `TMOUT=60` secondes (était 1s). Pour des shells encore plus discrets, mettre `TMOUT=300` après le source.
+- **Détection processus** : `detect_heresy` lance 3 `pgrep` au démarrage uniquement (pas à chaque prompt).
+- **Re-sourcing** : la bannière n'est pas rejouée grâce à `IMPERIAL_BANNER_SHOWN`.
+
+## Architecture
+
+Le fichier `warhammer_file.sh` (~770 lignes) est organisé en blocs (top-to-bottom) :
+
+1. Boilerplate Oh My Zsh (plugins, theme désactivé)
+2. Bootstrap `~/.imperial_chapter_config` + `case` couleurs/symboles par chapitre
+3. Palette couleurs partagée (24-bit ANSI)
+4. Primitives UI (`imperial_date`, `imperial_loading`, `imperial_box`, etc.)
+5. Système de rang, gestion d'erreur, événements ambiants (warp storms, blessings)
+6. Aliases groupés par thème
+7. Bannière (gated par `IMPERIAL_QUIET` / non-interactif)
+8. Rituels haut niveau (`praise-omnissiah`, `machine-blessing`, etc.)
+9. `help-imperial` (codex complet)
+
+Détails dans `CLAUDE.md` à la racine.
+
+## Personnalisation
+
+### Changer de chapitre
 
 ```bash
-# Ubuntu/Debian systems
-sudo apt install curl htop nmap bc
-
-# Optional: Matrix rain effect for machine spirit
-sudo apt install cmatrix
-
-# Optional: Hollywood-style data streams
-sudo apt install hollywood
+chapter-config         # édite ~/.imperial_chapter_config
+# IMPERIAL_CHAPTER="BLOOD_ANGELS"
+# COMPANY="3rd Company"
+# SQUAD="Death Company"
+# BATTLE_HONORS=("Baal" "Armageddon" "Vraks")
+reload-config
 ```
 
-## Chapter Configuration
+### Ajouter un chapitre custom
 
-### Personal Chapter Setup
-
-```bash
-# Edit your Chapter configuration
-chapter-config
-
-# Available settings:
-IMPERIAL_CHAPTER="BLOOD_ANGELS"    # Choose your Chapter
-COMPANY="3rd Company"              # Your Company assignment  
-SQUAD="Assault Squad Dante"        # Your Squad designation
-BATTLE_HONORS=("Armageddon" "Baal") # Your battle honors
-```
-
-### Custom Chapter Creation
-
-Add your own Chapter by modifying the case statement in the configuration:
+Modifier le `case` dans `warhammer_file.sh` (vers la ligne 95) :
 
 ```bash
 "YOUR_CHAPTER")
-    PRIMARY_COLOR="\033[38;2;R;G;Bm"     # Your colors
-    CHAPTER_SYMBOL="⚡"                   # Your symbol
-    BATTLE_CRY="Your battle cry!"        # Your cry
-    CHAPTER_MOTTO="Your motto"           # Your motto
+    PRIMARY_COLOR="\033[38;2;R;G;Bm"   # couleur 24-bit
+    SECONDARY_COLOR="\033[38;2;R;G;Bm"
+    CHAPTER_SYMBOL="⚡"
+    BATTLE_CRY="Your battle cry!"
+    CHAPTER_MOTTO="Your motto"
     ;;
 ```
 
-## Advanced Features
-
-### Imperial Dating System
-
-The terminal displays dates in proper M41/M42 format:
-
-- **M42.025.147.1430** - 42nd Millennium, year 025, day 147, time 14:30
-
-### Rank Progression System
-
-Your rank advances based on system usage:
-
-- **Battle-Brother** - New recruits
-- **Veteran** - 7+ days uptime, 50+ logins  
-- **Sergeant** - 30+ days uptime, 200+ logins
-- **Captain** - 100+ days uptime, 500+ logins
-- **Chapter Master** - 365+ days uptime, 1000+ logins
-
-### Random Events
-
-- **Warp Storm Warnings** - Rare events during network operations (0.5% chance)
-- **Imperial Blessings** - Random wisdom at startup
-- **Heresy Detection** - Humorous warnings about recreational processes
-
-### Contextual Intelligence
-
-- **Dawn Patrol** messages in the morning
-- **Night Watch** notifications during late hours
-- **Midday Observance** reminders during lunch
-
-### Palette de Couleurs Améliorée
-
-Couleurs authentiques Warhammer 40K :
-
-- **Or Impérial** - `#FFD700` - Pour les éléments sacrés
-- **Rouge Cramoisi** - `#DC143C` - Pour les avertissements et cris de guerre
-- **Gris Acier** - `#7D7F81` - Pour les bordures et éléments décoratifs
-- **Vert Phosphore** - `#33FF66` - Pour les affichages cogitateur
-- **Noir Gothique** - `#1C1C1C` - Pour les arrière-plans
-
-## Community Integration
-
-This configuration appeals to different Warhammer 40K community segments:
-
-- **Lore Masters** - Authentic Imperial terminology and references
-- **Tabletop Players** - Chapter customization matching your army
-- **Video Game Fans** - Immersive command-line RPG experience  
-- **System Administrators** - Professional tools with thematic flair
-- **Collectors** - Complete aesthetic consistency
-
-## Advanced Usage Examples
-
-### Daily Imperial Ritual
+Puis ajouter le nom-affichage propre dans `imperial_chapter_display()` (vers la ligne 148) :
 
 ```bash
-# Morning purification sequence
-purify-system && cleanse-heresy && imperial-status
+YOUR_CHAPTER) echo "Your Chapter" ;;
+```
 
-# Evening blessing
+## Exemples d'usage
+
+### Rituel quotidien
+
+```bash
+purify-system && cleanse-heresy && imperial-status
+```
+
+### Mission de reconnaissance (réseau autorisé)
+
+```bash
+export IMPERIAL_AUTHORIZED=1
+recon-scan 192.168.1.0/24
+full-augury 192.168.1.42
+```
+
+### Shell silencieux (SSH / CI)
+
+```bash
+IMPERIAL_QUIET=1 ssh user@host
+# ou de façon permanente dans ~/.ssh/environment :
+IMPERIAL_QUIET=1
+```
+
+### Shell interactif dans un container
+
+```bash
+docksh my-container        # tente bash, fallback sh
+docksh my-container ash    # force ash (Alpine)
+```
+
+### Bénédiction du soir
+
+```bash
 emperor-blessing && machine-blessing
 ```
 
-### Network Reconnaissance Mission
+## Dépannage
 
+**Le prompt droit montre `M30` au lieu de `M42`**
+Vous utilisez encore une version ≤ 2.0. Récupérez la dernière `warhammer_file.sh` et relancez un nouveau terminal (ou `exec zsh`).
+
+**`/home/user/.zshrc:407: defining function based on alias 'purge'`**
+Une ancienne version définissait `alias purge='rm -rf'`. La version actuelle `unalias` au début, mais si le shell mixe les deux états, un `exec zsh` ou un nouveau terminal résout.
+
+**Couleurs absentes ou incorrectes**
+Vérifier `$COLORTERM` (doit contenir `truecolor`) et `$TERM` (≥ 256 couleurs). Les couleurs 24-bit utilisent les escapes `\033[38;2;R;G;Bm`.
+
+**Trop d'animations / boot trop long**
+Mettre `export IMPERIAL_QUIET=1` dans `~/.zshenv` pour skipper la bannière en permanence.
+
+**Restaurer la config précédente**
 ```bash
-# Complete reconnaissance protocol
-recon-scan 192.168.1.0/24
-full-augury suspicious-target.local
-deep-scan --target-validation required
+cp ~/.zshrc.backup ~/.zshrc && exec zsh
 ```
 
-### Chapter Brotherhood Commands
+## Quoi de neuf
 
-```bash
-# Display Chapter information
-chapter-oath && imperial-status
+### v2.1 — Édition Codex Améliorée
 
-# Perform machine spirit blessing
-machine-blessing && praise-omnissiah
-```
+**Corrections :**
+- Date impériale : offset `+40000` (affichait M30 au lieu de M42)
+- Rang : utilise `/proc/uptime` et ajoute le tier CHAPTER-MASTER (365 j+)
+- Crâne ASCII : recentré, mur droit aligné, bannière entière à 88 colonnes
+- `contextual_message` : `Dawn Patrol` réellement affiché à 6h (était `Night Watch`)
+- `vox_message` : garde anti-overflow pour messages > 48 caractères
+- `chapter-oath` : bordures dynamiques selon la longueur du motto
+- `imperial-status` : Battle Honors / Company / Squad ajoutés, tolère absence de `uptime -p`
+- `docksh` : `$1` quoté, fallback `/bin/sh` (Alpine et autres images minimales)
+- Doublons `help-imperial` / `create_chapter_config` supprimés
+- Bootstrap `~/.imperial_chapter_config` *avant* le source (1ʳᵉ session voit ses settings)
 
-## Troubleshooting
+**Sécurité :**
+- `purge` : fonction avec confirmation `EXTERMINATUS`
+- `shutdown-now` : fonction avec confirmation `EMPEROR`
+- Aliases nmap (`recon-scan`, `full-augury`, `stealth-probe`, `deep-scan`) : gated par `IMPERIAL_AUTHORIZED=1`
 
-### Common Imperial Issues
+**Performance / cross-shell :**
+- `TMOUT=1` → `TMOUT=60` (élimine fork-exec storms via `$(imperial_date)` dans RPROMPT)
+- Bannière wrappée : skip si `IMPERIAL_QUIET=1`, non-interactif, ou déjà affichée
+- `PROMPT` / `RPROMPT` / `TRAPALRM` / `setopt` derrière garde `[[ -n $ZSH_VERSION ]]` → bash propre
+- `command_not_found_handle` ajouté (équivalent bash de `command_not_found_handler` zsh)
 
-**Colors not displaying properly:**
+**UX :**
+- `help-imperial` : codex complet, sections gold, légende ⚠/⚿, exemples rapides
+- Noms de chapitres affichés en propre (« Blood Angels » au lieu de « BLOOD_ANGELS »)
 
-```bash
-# Verify terminal capabilities
-echo $TERM
-# Should support 256 colors
-```
+### Version 2.0 — Édition Améliorée
 
-**Chapter configuration not loading:**
+- Palette couleurs impériale authentique
+- Animations interactives (`imperial_loading`, `imperial_progress`, `imperial_box`, `imperial_type`)
+- ASCII art crâne impérial
+- Système de rangs, événements warp storm
+- Messages contextuels selon l'heure (Dawn / Midday / Night)
 
-```bash
-# Recreate configuration file
-rm ~/.imperial_chapter_config
-source ~/.zshrc  # Will auto-create new config
-```
+## Fichiers du projet
 
-**Machine spirit corruption (shell errors):**
+- `warhammer_file.sh` — configuration complète (un seul fichier)
+- `README.md` — documentation française (primaire)
+- `README_EN.md` — documentation anglaise (mirroir)
+- `CLAUDE.md` — guide pour les agents Claude Code (architecture, conventions)
+- `LICENSE` — licence MIT
+- `warhammer_image_1.jpg` — logo
 
-```bash
-# Emergency restoration protocol
-cp ~/.zshrc.backup ~/.zshrc && source ~/.zshrc
-emperor-blessing  # Restore Imperial favor
-```
+## Contribuer
 
-**Animations trop lentes/rapides :**
+Soumettez vos améliorations :
 
-Ajustez le paramètre de durée dans les appels `imperial_loading` ou modifiez les valeurs de sleep dans les fonctions d'animation.
+- Nouveaux chapitres Space Marines
+- Aliases thématiques additionnels
+- Améliorations ASCII art / symboles
+- Précisions lore
+- Optimisations performance / cross-shell
 
-### Performance Optimization
+**Garde-fous :**
+- Garder la précision lore (Omnissiah, Macragge, mottos, etc.)
+- Réutiliser les constantes de couleur (`GOLD_IMPERIAL`, `CRIMSON_RED`, …) plutôt que de nouveaux escapes bruts
+- Terminer chaque `printf`/`echo` stylé par `${RESET}`
+- Préserver les commentaires Oh My Zsh en tête de fichier
+- Tester en zsh **et** en bash (`bash -n warhammer_file.sh; zsh -n warhammer_file.sh`)
 
-- Uses minimal system resources
-- Efficient prompt updates with TMOUT
-- Cached function results where possible
-- Clean error handling prevents terminal hangs
-- Optimized color codes for fast rendering
+## Licence
 
-## Contributing to the Imperium
-
-Submit your improvements:
-
-- Additional Space Marine Chapters
-- New Imperial-themed aliases
-- Enhanced ASCII art and symbols
-- Lore-accurate improvements
-- Performance optimizations
-- Animation effects
-- Interactive features
-
-### Development Guidelines
-
-- Maintain lore accuracy
-- Ensure cross-platform compatibility
-- Test on both Zsh and Bash
-- Document all functions thoroughly
-- Follow Imperial coding standards (clean, functional, blessed by the Omnissiah)
-- Preserve commented lines for Oh My Zsh compatibility
-
-## File Structure
-
-```
-~/.zshrc                    # Main Imperial configuration
-~/.imperial_chapter_config  # Chapter-specific settings
-~/.zsh_history             # Imperial command history (sacred records)
-```
-
-## Security Considerations
-
-All aliases and functions use standard system commands with thematic naming. No actual security vulnerabilities are introduced - this is purely aesthetic enhancement for your development workflow.
-
-## Quoi de Neuf dans Cette Version
-
-### Version 2.0 - Édition Améliorée
-
-- ✨ **Palette de couleurs améliorée** - Couleurs impériales authentiques Warhammer 40K
-- 🎬 **Animations interactives** - Barres de chargement, indicateurs de progrès, effets de frappe
-- 🎨 **UI/UX améliorée** - Bordures élégantes, meilleur retour visuel
-- 🛡️ **ASCII Art corrigé** - Cadre du crâne impérial parfaitement aligné
-- ⚡ **Fonctions dynamiques** - Nouvelles fonctions utilitaires pour une meilleure expérience
-- 🎯 **Commandes améliorées** - Alias enrichis avec retour visuel
-- 📊 **Barres de progression** - Retour visuel pour les opérations longues
-- 🎭 **Messages stylisés** - Boîtes impériales et sorties formatées
-
-## Fichiers du Projet
-
-- `warhammer_file.sh` - Configuration principale du terminal impérial
-- `README.md` - Documentation en français
-- `README_EN.md` - Documentation en anglais
-- `LICENSE` - Licence MIT
-- `warhammer_image_1.jpg` - Logo du terminal impérial
-
-## License
-
-This configuration is distributed under the MIT License. See the LICENSE file for details.
+MIT — voir `LICENSE`.
 
 **The Emperor Protects Those Who Serve**
 
